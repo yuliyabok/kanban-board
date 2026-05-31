@@ -6,9 +6,11 @@
 офлайн-первым локальным хранением на Drift, Riverpod для DI/state management,
 GoRouter для навигации и подготовленным слоем синхронизации.
 
-Код уже построен вокруг feature-first/Clean Architecture:
+Код построен вокруг feature-first/Clean Architecture:
 
 - `domain` описывает бизнес-модель, контракты репозиториев и use cases
+- `application` собирает сценарии приложения, command services, queries и
+  view state для экранов
 - `data` работает с Drift/API/DTO/мапперами и реализациями репозиториев
 - `presentation` содержит Riverpod-контроллеры, providers, страницы и виджеты
 - `core` содержит инфраструктуру: база, сеть, storage, sync, ошибки, DI
@@ -24,10 +26,13 @@ GoRouter для навигации и подготовленным слоем с
    неавторизованного пользователя на `/login`.
 5. Инфраструктурные провайдеры из `core_providers.dart` создают конфиг,
    Drift-базу, API-клиент, secure storage, realtime connection и sync manager.
-6. Feature-провайдеры собирают datasources, repositories и use cases.
-7. UI-страницы читают `AsyncValue` из providers/controllers и вызывают
+6. Feature-провайдеры собирают datasources, repositories, use cases и
+   application services.
+7. Application query/services собирают `BoardViewState`, фильтруют,
+   группируют и оркестрируют изменения задач/колонок.
+8. UI-страницы читают `AsyncValue` из providers/controllers и вызывают
    контроллеры для действий пользователя.
-8. Репозитории сохраняют изменения локально и отмечают сущности полями
+9. Репозитории сохраняют изменения локально и отмечают сущности полями
    `isSynced`/`syncAction` для будущей синхронизации.
 
 ## Текущий статус
@@ -49,6 +54,7 @@ GoRouter для навигации и подготовленным слоем с
 - `AppConfig.development()` смотрит на `https://api.example.local`
 - auth ожидает реальный backend
 - sync manager пока координирует состояние, но не содержит полноценной очереди
+- добавлены контракты outbox-синхронизации, но они еще не подключены к Drift
 - realtime-события подготовлены архитектурно, но не обрабатываются как продуктовая
   синхронизация
 - часть UI-сценариев уже есть, но не все CRUD-потоки доведены до полноценного UX

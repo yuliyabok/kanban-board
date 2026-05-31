@@ -3,9 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/error/result.dart';
 import '../../../columns/domain/entities/board_column_entity.dart';
+import '../../../columns/domain/policies/column_policy.dart';
 import '../../../columns/presentation/providers/column_providers.dart';
 import '../../../tasks/presentation/providers/task_providers.dart';
+import '../../application/board_constructor_service.dart';
+import '../../application/deleted_column_task_plan.dart';
 import 'board_constructor_state.dart';
+
+final boardConstructorServiceProvider = Provider<BoardConstructorService>((
+  ref,
+) {
+  return DefaultBoardConstructorService(
+    columnRepository: ref.watch(columnRepositoryProvider),
+    taskRepository: ref.watch(taskRepositoryProvider),
+  );
+});
 
 final boardConstructorControllerProvider = AsyncNotifierProvider.autoDispose
     .family<BoardConstructorController, BoardConstructorState, String>(
@@ -213,107 +225,29 @@ class BoardConstructorController extends AsyncNotifier<BoardConstructorState> {
     }
 
     state = AsyncData(value.copyWith(isSaving: true));
-
     final latest = state.requireValue;
-    final originalById = {
-      for (final column in latest.originalColumns) column.id: column,
-    };
-    final draftById = {
-      for (final column in latest.draftColumns) column.id: column,
-    };
 
-    try {
-      final tasks = await ref.read(boardTasksProvider(_boardId).future);
-      for (final deletedColumnId in originalById.keys) {
-        if (draftById.containsKey(deletedColumnId)) continue;
+    final result = await ref
+        .read(boardConstructorServiceProvider)
+        .saveDraft(
+          boardId: _boardId,
+          originalColumns: latest.originalColumns,
+          draftColumns: latest.draftColumns,
+          deletedColumnTaskPlans: latest.deletedColumnTaskPlans,
+        );
 
-        final plan = latest.deletedColumnTaskPlans[deletedColumnId];
-        final affectedTasks = tasks
-            .where((task) => task.columnId == deletedColumnId)
-            .toList(growable: false);
-        if (affectedTasks.isNotEmpty && plan == null) {
-          state = AsyncData(latest.copyWith(isSaving: false));
-          return const Error(
-            ValidationFailure('Выберите, что сделать с задачами столбца'),
-          );
-        }
-
-        for (final task in affectedTasks) {
-          final result = plan?.action == ColumnTaskDeleteAction.transferTasks
-              ? await ref
-                    .read(updateTaskProvider)
-                    .call(
-                      task.copyWith(columnId: plan?.transferTargetColumnId),
-                    )
-              : await ref.read(deleteTaskProvider).call(task.id);
-          if (result case Error(:final failure)) {
-            state = AsyncData(latest.copyWith(isSaving: false));
-            return Error(failure);
-          }
-        }
-
-        final deleteResult = await ref
-            .read(deleteColumnProvider)
-            .call(deletedColumnId);
-        if (deleteResult case Error(:final failure)) {
-          state = AsyncData(latest.copyWith(isSaving: false));
-          return Error(failure);
-        }
-      }
-
-      for (final column in latest.draftColumns) {
-        if (!originalById.containsKey(column.id)) {
-          final result = await ref
-              .read(createColumnProvider)
-              .call(
-                boardId: _boardId,
-                title: column.title,
-                position: column.position,
-                id: column.id,
-              );
-          if (result case Error(:final failure)) {
-            state = AsyncData(latest.copyWith(isSaving: false));
-            return Error(failure);
-          }
-          continue;
-        }
-
-        final original = originalById[column.id]!;
-        if (original.title != column.title) {
-          final result = await ref
-              .read(updateColumnTitleProvider)
-              .call(
-                columnId: column.id,
-                title: column.title,
-              );
-          if (result case Error(:final failure)) {
-            state = AsyncData(latest.copyWith(isSaving: false));
-            return Error(failure);
-          }
-        }
-      }
-
-      final reorderResult = await ref
-          .read(reorderColumnsProvider)
-          .call(latest.draftColumns);
-      if (reorderResult case Error(:final failure)) {
+    switch (result) {
+      case Success(:final value):
+        state = AsyncData(
+          BoardConstructorState.empty().copyWith(
+            originalColumns: value,
+            draftColumns: value,
+          ),
+        );
+        return const Success(null);
+      case Error(:final failure):
         state = AsyncData(latest.copyWith(isSaving: false));
         return Error(failure);
-      }
-
-      final savedColumns = await ref.read(
-        boardColumnsProvider(_boardId).future,
-      );
-      state = AsyncData(
-        BoardConstructorState.empty().copyWith(
-          originalColumns: savedColumns,
-          draftColumns: savedColumns,
-        ),
-      );
-      return const Success(null);
-    } on Exception catch (error) {
-      state = AsyncData(latest.copyWith(isSaving: false));
-      return Error(UnexpectedFailure(error.toString()));
     }
   }
 
@@ -330,14 +264,7 @@ class BoardConstructorController extends AsyncNotifier<BoardConstructorState> {
   }
 
   String? _validateTitle(String title) {
-    final trimmed = title.trim();
-    if (trimmed.isEmpty) {
-      return 'Название не может быть пустым';
-    }
-    if (trimmed.length > 50) {
-      return 'Максимум 50 символов';
-    }
-    return null;
+    return ColumnPolicy.validateTitle(title)?.message;
   }
 
   Map<String, String> _withoutError(
@@ -351,9 +278,9 @@ class BoardConstructorController extends AsyncNotifier<BoardConstructorState> {
   List<BoardColumnEntity> _normalizePositions(
     List<BoardColumnEntity> columns,
   ) {
-    return [
-      for (var index = 0; index < columns.length; index++)
-        columns[index].copyWith(position: index),
-    ];
+    return ColumnPolicy.normalizePositions(
+      columns,
+      (column, position) => column.copyWith(position: position),
+    );
   }
 }

@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/error/result.dart';
 import '../../domain/entities/task_entity.dart';
+import '../../domain/policies/task_policy.dart';
 import '../../domain/repositories/task_repository.dart';
 import '../datasources/task_local_datasource.dart';
 import '../datasources/task_remote_datasource.dart';
@@ -28,6 +29,12 @@ final class OfflineFirstTaskRepository implements TaskRepository {
         .map(
           (rows) => rows.map((row) => row.toEntity()).toList(growable: false),
         );
+  }
+
+  @override
+  Future<List<TaskEntity>> getByBoard(String boardId) async {
+    final rows = await _localDataSource.getByBoard(boardId);
+    return rows.map((row) => row.toEntity()).toList(growable: false);
   }
 
   @override
@@ -66,7 +73,7 @@ final class OfflineFirstTaskRepository implements TaskRepository {
         createdAt: now,
         updatedAt: now,
       );
-      final validation = _validateTask(
+      final validation = TaskPolicy.validate(
         localTask,
         existingTasks.map((row) => row.toEntity()),
       );
@@ -87,7 +94,7 @@ final class OfflineFirstTaskRepository implements TaskRepository {
   Future<Result<TaskEntity>> update(TaskEntity task) async {
     try {
       final existingTasks = await _localDataSource.getByBoard(task.boardId);
-      final validation = _validateTask(
+      final validation = TaskPolicy.validate(
         task,
         existingTasks.map((row) => row.toEntity()),
       );
@@ -147,48 +154,6 @@ final class OfflineFirstTaskRepository implements TaskRepository {
     } on Exception catch (error) {
       return Error(StorageFailure(error.toString()));
     }
-  }
-
-  Failure? _validateTask(TaskEntity task, Iterable<TaskEntity> existingTasks) {
-    final trimmedTitle = task.title.trim();
-    if (trimmedTitle.isEmpty) {
-      return const ValidationFailure('Название задачи не может быть пустым');
-    }
-    if (trimmedTitle.length > 120) {
-      return const ValidationFailure('Название задачи не длиннее 120 символов');
-    }
-    if ((task.description?.length ?? 0) > 1000) {
-      return const ValidationFailure('Описание не длиннее 1000 символов');
-    }
-    if (task.startDate != null &&
-        task.dueDate != null &&
-        task.dueDate!.isBefore(task.startDate!)) {
-      return const ValidationFailure('Дата окончания не раньше даты начала');
-    }
-    if (task.depth > 3) {
-      return const ValidationFailure('Максимальная вложенность подзадач — 3');
-    }
-    if (task.parentTaskId == task.id) {
-      return const ValidationFailure(
-        'Задача не может быть дочерней самой себе',
-      );
-    }
-    if (_createsCycle(task, existingTasks)) {
-      return const ValidationFailure('Нельзя создать циклическую зависимость');
-    }
-    return null;
-  }
-
-  bool _createsCycle(TaskEntity task, Iterable<TaskEntity> existingTasks) {
-    final byId = {for (final item in existingTasks) item.id: item};
-    var parentId = task.parentTaskId;
-    var guard = 0;
-    while (parentId != null && guard < 10) {
-      if (parentId == task.id) return true;
-      parentId = byId[parentId]?.parentTaskId;
-      guard++;
-    }
-    return false;
   }
 
   Future<void> _tryPushCreate(TaskEntity task) async {
