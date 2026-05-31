@@ -6,6 +6,7 @@ import '../database/app_database.dart';
 import '../network/api_client.dart';
 import '../storage/secure_storage.dart';
 import '../sync/realtime_connection.dart';
+import '../sync/realtime_service.dart';
 import '../sync/sync_manager.dart';
 
 final appConfigProvider = Provider<AppConfig>((ref) {
@@ -31,6 +32,12 @@ final realtimeConnectionProvider = Provider<RealtimeConnection>((ref) {
   final connection = WebSocketRealtimeConnection(ref.watch(appConfigProvider));
   ref.onDispose(connection.close);
   return connection;
+});
+
+final realtimeServiceProvider = Provider<RealtimeService>((ref) {
+  final service = MockRealtimeService();
+  ref.onDispose(service.dispose);
+  return service;
 });
 
 final syncManagerProvider = Provider<SyncManager>((ref) {

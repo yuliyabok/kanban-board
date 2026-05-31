@@ -29,6 +29,17 @@ class $BoardsTableTable extends BoardsTable
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _workspaceIdMeta = const VerificationMeta(
+    'workspaceId',
+  );
+  @override
+  late final GeneratedColumn<String> workspaceId = GeneratedColumn<String>(
+    'workspace_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _titleMeta = const VerificationMeta('title');
   @override
   late final GeneratedColumn<String> title = GeneratedColumn<String>(
@@ -116,6 +127,7 @@ class $BoardsTableTable extends BoardsTable
   List<GeneratedColumn> get $columns => [
     id,
     ownerId,
+    workspaceId,
     title,
     description,
     createdAt,
@@ -148,6 +160,15 @@ class $BoardsTableTable extends BoardsTable
       );
     } else if (isInserting) {
       context.missing(_ownerIdMeta);
+    }
+    if (data.containsKey('workspace_id')) {
+      context.handle(
+        _workspaceIdMeta,
+        workspaceId.isAcceptableOrUnknown(
+          data['workspace_id']!,
+          _workspaceIdMeta,
+        ),
+      );
     }
     if (data.containsKey('title')) {
       context.handle(
@@ -217,6 +238,10 @@ class $BoardsTableTable extends BoardsTable
         DriftSqlType.string,
         data['${effectivePrefix}owner_id'],
       )!,
+      workspaceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}workspace_id'],
+      ),
       title: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}title'],
@@ -257,6 +282,7 @@ class $BoardsTableTable extends BoardsTable
 class BoardsTableData extends DataClass implements Insertable<BoardsTableData> {
   final String id;
   final String ownerId;
+  final String? workspaceId;
   final String title;
   final String? description;
   final DateTime createdAt;
@@ -267,6 +293,7 @@ class BoardsTableData extends DataClass implements Insertable<BoardsTableData> {
   const BoardsTableData({
     required this.id,
     required this.ownerId,
+    this.workspaceId,
     required this.title,
     this.description,
     required this.createdAt,
@@ -280,6 +307,9 @@ class BoardsTableData extends DataClass implements Insertable<BoardsTableData> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['owner_id'] = Variable<String>(ownerId);
+    if (!nullToAbsent || workspaceId != null) {
+      map['workspace_id'] = Variable<String>(workspaceId);
+    }
     map['title'] = Variable<String>(title);
     if (!nullToAbsent || description != null) {
       map['description'] = Variable<String>(description);
@@ -300,6 +330,9 @@ class BoardsTableData extends DataClass implements Insertable<BoardsTableData> {
     return BoardsTableCompanion(
       id: Value(id),
       ownerId: Value(ownerId),
+      workspaceId: workspaceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(workspaceId),
       title: Value(title),
       description: description == null && nullToAbsent
           ? const Value.absent()
@@ -324,6 +357,7 @@ class BoardsTableData extends DataClass implements Insertable<BoardsTableData> {
     return BoardsTableData(
       id: serializer.fromJson<String>(json['id']),
       ownerId: serializer.fromJson<String>(json['ownerId']),
+      workspaceId: serializer.fromJson<String?>(json['workspaceId']),
       title: serializer.fromJson<String>(json['title']),
       description: serializer.fromJson<String?>(json['description']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -339,6 +373,7 @@ class BoardsTableData extends DataClass implements Insertable<BoardsTableData> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'ownerId': serializer.toJson<String>(ownerId),
+      'workspaceId': serializer.toJson<String?>(workspaceId),
       'title': serializer.toJson<String>(title),
       'description': serializer.toJson<String?>(description),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -352,6 +387,7 @@ class BoardsTableData extends DataClass implements Insertable<BoardsTableData> {
   BoardsTableData copyWith({
     String? id,
     String? ownerId,
+    Value<String?> workspaceId = const Value.absent(),
     String? title,
     Value<String?> description = const Value.absent(),
     DateTime? createdAt,
@@ -362,6 +398,7 @@ class BoardsTableData extends DataClass implements Insertable<BoardsTableData> {
   }) => BoardsTableData(
     id: id ?? this.id,
     ownerId: ownerId ?? this.ownerId,
+    workspaceId: workspaceId.present ? workspaceId.value : this.workspaceId,
     title: title ?? this.title,
     description: description.present ? description.value : this.description,
     createdAt: createdAt ?? this.createdAt,
@@ -374,6 +411,9 @@ class BoardsTableData extends DataClass implements Insertable<BoardsTableData> {
     return BoardsTableData(
       id: data.id.present ? data.id.value : this.id,
       ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
+      workspaceId: data.workspaceId.present
+          ? data.workspaceId.value
+          : this.workspaceId,
       title: data.title.present ? data.title.value : this.title,
       description: data.description.present
           ? data.description.value
@@ -393,6 +433,7 @@ class BoardsTableData extends DataClass implements Insertable<BoardsTableData> {
     return (StringBuffer('BoardsTableData(')
           ..write('id: $id, ')
           ..write('ownerId: $ownerId, ')
+          ..write('workspaceId: $workspaceId, ')
           ..write('title: $title, ')
           ..write('description: $description, ')
           ..write('createdAt: $createdAt, ')
@@ -408,6 +449,7 @@ class BoardsTableData extends DataClass implements Insertable<BoardsTableData> {
   int get hashCode => Object.hash(
     id,
     ownerId,
+    workspaceId,
     title,
     description,
     createdAt,
@@ -422,6 +464,7 @@ class BoardsTableData extends DataClass implements Insertable<BoardsTableData> {
       (other is BoardsTableData &&
           other.id == this.id &&
           other.ownerId == this.ownerId &&
+          other.workspaceId == this.workspaceId &&
           other.title == this.title &&
           other.description == this.description &&
           other.createdAt == this.createdAt &&
@@ -434,6 +477,7 @@ class BoardsTableData extends DataClass implements Insertable<BoardsTableData> {
 class BoardsTableCompanion extends UpdateCompanion<BoardsTableData> {
   final Value<String> id;
   final Value<String> ownerId;
+  final Value<String?> workspaceId;
   final Value<String> title;
   final Value<String?> description;
   final Value<DateTime> createdAt;
@@ -445,6 +489,7 @@ class BoardsTableCompanion extends UpdateCompanion<BoardsTableData> {
   const BoardsTableCompanion({
     this.id = const Value.absent(),
     this.ownerId = const Value.absent(),
+    this.workspaceId = const Value.absent(),
     this.title = const Value.absent(),
     this.description = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -457,6 +502,7 @@ class BoardsTableCompanion extends UpdateCompanion<BoardsTableData> {
   BoardsTableCompanion.insert({
     required String id,
     required String ownerId,
+    this.workspaceId = const Value.absent(),
     required String title,
     this.description = const Value.absent(),
     required DateTime createdAt,
@@ -473,6 +519,7 @@ class BoardsTableCompanion extends UpdateCompanion<BoardsTableData> {
   static Insertable<BoardsTableData> custom({
     Expression<String>? id,
     Expression<String>? ownerId,
+    Expression<String>? workspaceId,
     Expression<String>? title,
     Expression<String>? description,
     Expression<DateTime>? createdAt,
@@ -485,6 +532,7 @@ class BoardsTableCompanion extends UpdateCompanion<BoardsTableData> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (ownerId != null) 'owner_id': ownerId,
+      if (workspaceId != null) 'workspace_id': workspaceId,
       if (title != null) 'title': title,
       if (description != null) 'description': description,
       if (createdAt != null) 'created_at': createdAt,
@@ -499,6 +547,7 @@ class BoardsTableCompanion extends UpdateCompanion<BoardsTableData> {
   BoardsTableCompanion copyWith({
     Value<String>? id,
     Value<String>? ownerId,
+    Value<String?>? workspaceId,
     Value<String>? title,
     Value<String?>? description,
     Value<DateTime>? createdAt,
@@ -511,6 +560,7 @@ class BoardsTableCompanion extends UpdateCompanion<BoardsTableData> {
     return BoardsTableCompanion(
       id: id ?? this.id,
       ownerId: ownerId ?? this.ownerId,
+      workspaceId: workspaceId ?? this.workspaceId,
       title: title ?? this.title,
       description: description ?? this.description,
       createdAt: createdAt ?? this.createdAt,
@@ -530,6 +580,9 @@ class BoardsTableCompanion extends UpdateCompanion<BoardsTableData> {
     }
     if (ownerId.present) {
       map['owner_id'] = Variable<String>(ownerId.value);
+    }
+    if (workspaceId.present) {
+      map['workspace_id'] = Variable<String>(workspaceId.value);
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
@@ -563,6 +616,7 @@ class BoardsTableCompanion extends UpdateCompanion<BoardsTableData> {
     return (StringBuffer('BoardsTableCompanion(')
           ..write('id: $id, ')
           ..write('ownerId: $ownerId, ')
+          ..write('workspaceId: $workspaceId, ')
           ..write('title: $title, ')
           ..write('description: $description, ')
           ..write('createdAt: $createdAt, ')
@@ -4355,6 +4409,3791 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
   }
 }
 
+class $UsersTableTable extends UsersTable
+    with TableInfo<$UsersTableTable, UsersTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UsersTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _emailMeta = const VerificationMeta('email');
+  @override
+  late final GeneratedColumn<String> email = GeneratedColumn<String>(
+    'email',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fullNameMeta = const VerificationMeta(
+    'fullName',
+  );
+  @override
+  late final GeneratedColumn<String> fullName = GeneratedColumn<String>(
+    'full_name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 160,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<String> position = GeneratedColumn<String>(
+    'position',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _avatarUrlMeta = const VerificationMeta(
+    'avatarUrl',
+  );
+  @override
+  late final GeneratedColumn<String> avatarUrl = GeneratedColumn<String>(
+    'avatar_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _passwordHashMeta = const VerificationMeta(
+    'passwordHash',
+  );
+  @override
+  late final GeneratedColumn<String> passwordHash = GeneratedColumn<String>(
+    'password_hash',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _passwordSaltMeta = const VerificationMeta(
+    'passwordSalt',
+  );
+  @override
+  late final GeneratedColumn<String> passwordSalt = GeneratedColumn<String>(
+    'password_salt',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    email,
+    fullName,
+    position,
+    avatarUrl,
+    passwordHash,
+    passwordSalt,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'users_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<UsersTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('email')) {
+      context.handle(
+        _emailMeta,
+        email.isAcceptableOrUnknown(data['email']!, _emailMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_emailMeta);
+    }
+    if (data.containsKey('full_name')) {
+      context.handle(
+        _fullNameMeta,
+        fullName.isAcceptableOrUnknown(data['full_name']!, _fullNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fullNameMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    }
+    if (data.containsKey('avatar_url')) {
+      context.handle(
+        _avatarUrlMeta,
+        avatarUrl.isAcceptableOrUnknown(data['avatar_url']!, _avatarUrlMeta),
+      );
+    }
+    if (data.containsKey('password_hash')) {
+      context.handle(
+        _passwordHashMeta,
+        passwordHash.isAcceptableOrUnknown(
+          data['password_hash']!,
+          _passwordHashMeta,
+        ),
+      );
+    }
+    if (data.containsKey('password_salt')) {
+      context.handle(
+        _passwordSaltMeta,
+        passwordSalt.isAcceptableOrUnknown(
+          data['password_salt']!,
+          _passwordSaltMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  UsersTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return UsersTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      email: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}email'],
+      )!,
+      fullName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}full_name'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}position'],
+      ),
+      avatarUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}avatar_url'],
+      ),
+      passwordHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}password_hash'],
+      ),
+      passwordSalt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}password_salt'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $UsersTableTable createAlias(String alias) {
+    return $UsersTableTable(attachedDatabase, alias);
+  }
+}
+
+class UsersTableData extends DataClass implements Insertable<UsersTableData> {
+  final String id;
+  final String email;
+  final String fullName;
+  final String? position;
+  final String? avatarUrl;
+  final String? passwordHash;
+  final String? passwordSalt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const UsersTableData({
+    required this.id,
+    required this.email,
+    required this.fullName,
+    this.position,
+    this.avatarUrl,
+    this.passwordHash,
+    this.passwordSalt,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['email'] = Variable<String>(email);
+    map['full_name'] = Variable<String>(fullName);
+    if (!nullToAbsent || position != null) {
+      map['position'] = Variable<String>(position);
+    }
+    if (!nullToAbsent || avatarUrl != null) {
+      map['avatar_url'] = Variable<String>(avatarUrl);
+    }
+    if (!nullToAbsent || passwordHash != null) {
+      map['password_hash'] = Variable<String>(passwordHash);
+    }
+    if (!nullToAbsent || passwordSalt != null) {
+      map['password_salt'] = Variable<String>(passwordSalt);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  UsersTableCompanion toCompanion(bool nullToAbsent) {
+    return UsersTableCompanion(
+      id: Value(id),
+      email: Value(email),
+      fullName: Value(fullName),
+      position: position == null && nullToAbsent
+          ? const Value.absent()
+          : Value(position),
+      avatarUrl: avatarUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(avatarUrl),
+      passwordHash: passwordHash == null && nullToAbsent
+          ? const Value.absent()
+          : Value(passwordHash),
+      passwordSalt: passwordSalt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(passwordSalt),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory UsersTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return UsersTableData(
+      id: serializer.fromJson<String>(json['id']),
+      email: serializer.fromJson<String>(json['email']),
+      fullName: serializer.fromJson<String>(json['fullName']),
+      position: serializer.fromJson<String?>(json['position']),
+      avatarUrl: serializer.fromJson<String?>(json['avatarUrl']),
+      passwordHash: serializer.fromJson<String?>(json['passwordHash']),
+      passwordSalt: serializer.fromJson<String?>(json['passwordSalt']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'email': serializer.toJson<String>(email),
+      'fullName': serializer.toJson<String>(fullName),
+      'position': serializer.toJson<String?>(position),
+      'avatarUrl': serializer.toJson<String?>(avatarUrl),
+      'passwordHash': serializer.toJson<String?>(passwordHash),
+      'passwordSalt': serializer.toJson<String?>(passwordSalt),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  UsersTableData copyWith({
+    String? id,
+    String? email,
+    String? fullName,
+    Value<String?> position = const Value.absent(),
+    Value<String?> avatarUrl = const Value.absent(),
+    Value<String?> passwordHash = const Value.absent(),
+    Value<String?> passwordSalt = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => UsersTableData(
+    id: id ?? this.id,
+    email: email ?? this.email,
+    fullName: fullName ?? this.fullName,
+    position: position.present ? position.value : this.position,
+    avatarUrl: avatarUrl.present ? avatarUrl.value : this.avatarUrl,
+    passwordHash: passwordHash.present ? passwordHash.value : this.passwordHash,
+    passwordSalt: passwordSalt.present ? passwordSalt.value : this.passwordSalt,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  UsersTableData copyWithCompanion(UsersTableCompanion data) {
+    return UsersTableData(
+      id: data.id.present ? data.id.value : this.id,
+      email: data.email.present ? data.email.value : this.email,
+      fullName: data.fullName.present ? data.fullName.value : this.fullName,
+      position: data.position.present ? data.position.value : this.position,
+      avatarUrl: data.avatarUrl.present ? data.avatarUrl.value : this.avatarUrl,
+      passwordHash: data.passwordHash.present
+          ? data.passwordHash.value
+          : this.passwordHash,
+      passwordSalt: data.passwordSalt.present
+          ? data.passwordSalt.value
+          : this.passwordSalt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UsersTableData(')
+          ..write('id: $id, ')
+          ..write('email: $email, ')
+          ..write('fullName: $fullName, ')
+          ..write('position: $position, ')
+          ..write('avatarUrl: $avatarUrl, ')
+          ..write('passwordHash: $passwordHash, ')
+          ..write('passwordSalt: $passwordSalt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    email,
+    fullName,
+    position,
+    avatarUrl,
+    passwordHash,
+    passwordSalt,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UsersTableData &&
+          other.id == this.id &&
+          other.email == this.email &&
+          other.fullName == this.fullName &&
+          other.position == this.position &&
+          other.avatarUrl == this.avatarUrl &&
+          other.passwordHash == this.passwordHash &&
+          other.passwordSalt == this.passwordSalt &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class UsersTableCompanion extends UpdateCompanion<UsersTableData> {
+  final Value<String> id;
+  final Value<String> email;
+  final Value<String> fullName;
+  final Value<String?> position;
+  final Value<String?> avatarUrl;
+  final Value<String?> passwordHash;
+  final Value<String?> passwordSalt;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const UsersTableCompanion({
+    this.id = const Value.absent(),
+    this.email = const Value.absent(),
+    this.fullName = const Value.absent(),
+    this.position = const Value.absent(),
+    this.avatarUrl = const Value.absent(),
+    this.passwordHash = const Value.absent(),
+    this.passwordSalt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  UsersTableCompanion.insert({
+    required String id,
+    required String email,
+    required String fullName,
+    this.position = const Value.absent(),
+    this.avatarUrl = const Value.absent(),
+    this.passwordHash = const Value.absent(),
+    this.passwordSalt = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       email = Value(email),
+       fullName = Value(fullName),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<UsersTableData> custom({
+    Expression<String>? id,
+    Expression<String>? email,
+    Expression<String>? fullName,
+    Expression<String>? position,
+    Expression<String>? avatarUrl,
+    Expression<String>? passwordHash,
+    Expression<String>? passwordSalt,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (email != null) 'email': email,
+      if (fullName != null) 'full_name': fullName,
+      if (position != null) 'position': position,
+      if (avatarUrl != null) 'avatar_url': avatarUrl,
+      if (passwordHash != null) 'password_hash': passwordHash,
+      if (passwordSalt != null) 'password_salt': passwordSalt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  UsersTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? email,
+    Value<String>? fullName,
+    Value<String?>? position,
+    Value<String?>? avatarUrl,
+    Value<String?>? passwordHash,
+    Value<String?>? passwordSalt,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return UsersTableCompanion(
+      id: id ?? this.id,
+      email: email ?? this.email,
+      fullName: fullName ?? this.fullName,
+      position: position ?? this.position,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      passwordHash: passwordHash ?? this.passwordHash,
+      passwordSalt: passwordSalt ?? this.passwordSalt,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (email.present) {
+      map['email'] = Variable<String>(email.value);
+    }
+    if (fullName.present) {
+      map['full_name'] = Variable<String>(fullName.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<String>(position.value);
+    }
+    if (avatarUrl.present) {
+      map['avatar_url'] = Variable<String>(avatarUrl.value);
+    }
+    if (passwordHash.present) {
+      map['password_hash'] = Variable<String>(passwordHash.value);
+    }
+    if (passwordSalt.present) {
+      map['password_salt'] = Variable<String>(passwordSalt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UsersTableCompanion(')
+          ..write('id: $id, ')
+          ..write('email: $email, ')
+          ..write('fullName: $fullName, ')
+          ..write('position: $position, ')
+          ..write('avatarUrl: $avatarUrl, ')
+          ..write('passwordHash: $passwordHash, ')
+          ..write('passwordSalt: $passwordSalt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $WorkspacesTableTable extends WorkspacesTable
+    with TableInfo<$WorkspacesTableTable, WorkspacesTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WorkspacesTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 120,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _ownerIdMeta = const VerificationMeta(
+    'ownerId',
+  );
+  @override
+  late final GeneratedColumn<String> ownerId = GeneratedColumn<String>(
+    'owner_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isSyncedMeta = const VerificationMeta(
+    'isSynced',
+  );
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+    'is_synced',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_synced" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _syncActionMeta = const VerificationMeta(
+    'syncAction',
+  );
+  @override
+  late final GeneratedColumn<String> syncAction = GeneratedColumn<String>(
+    'sync_action',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    ownerId,
+    createdAt,
+    updatedAt,
+    isSynced,
+    syncAction,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'workspaces_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WorkspacesTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('owner_id')) {
+      context.handle(
+        _ownerIdMeta,
+        ownerId.isAcceptableOrUnknown(data['owner_id']!, _ownerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_ownerIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(
+        _isSyncedMeta,
+        isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
+      );
+    }
+    if (data.containsKey('sync_action')) {
+      context.handle(
+        _syncActionMeta,
+        syncAction.isAcceptableOrUnknown(data['sync_action']!, _syncActionMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  WorkspacesTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WorkspacesTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      ownerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}owner_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      isSynced: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_synced'],
+      )!,
+      syncAction: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_action'],
+      ),
+    );
+  }
+
+  @override
+  $WorkspacesTableTable createAlias(String alias) {
+    return $WorkspacesTableTable(attachedDatabase, alias);
+  }
+}
+
+class WorkspacesTableData extends DataClass
+    implements Insertable<WorkspacesTableData> {
+  final String id;
+  final String name;
+  final String ownerId;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool isSynced;
+  final String? syncAction;
+  const WorkspacesTableData({
+    required this.id,
+    required this.name,
+    required this.ownerId,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.isSynced,
+    this.syncAction,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['owner_id'] = Variable<String>(ownerId);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['is_synced'] = Variable<bool>(isSynced);
+    if (!nullToAbsent || syncAction != null) {
+      map['sync_action'] = Variable<String>(syncAction);
+    }
+    return map;
+  }
+
+  WorkspacesTableCompanion toCompanion(bool nullToAbsent) {
+    return WorkspacesTableCompanion(
+      id: Value(id),
+      name: Value(name),
+      ownerId: Value(ownerId),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      isSynced: Value(isSynced),
+      syncAction: syncAction == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncAction),
+    );
+  }
+
+  factory WorkspacesTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WorkspacesTableData(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      ownerId: serializer.fromJson<String>(json['ownerId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      syncAction: serializer.fromJson<String?>(json['syncAction']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'ownerId': serializer.toJson<String>(ownerId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'syncAction': serializer.toJson<String?>(syncAction),
+    };
+  }
+
+  WorkspacesTableData copyWith({
+    String? id,
+    String? name,
+    String? ownerId,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isSynced,
+    Value<String?> syncAction = const Value.absent(),
+  }) => WorkspacesTableData(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    ownerId: ownerId ?? this.ownerId,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    isSynced: isSynced ?? this.isSynced,
+    syncAction: syncAction.present ? syncAction.value : this.syncAction,
+  );
+  WorkspacesTableData copyWithCompanion(WorkspacesTableCompanion data) {
+    return WorkspacesTableData(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      syncAction: data.syncAction.present
+          ? data.syncAction.value
+          : this.syncAction,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WorkspacesTableData(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('ownerId: $ownerId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('syncAction: $syncAction')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    ownerId,
+    createdAt,
+    updatedAt,
+    isSynced,
+    syncAction,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WorkspacesTableData &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.ownerId == this.ownerId &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.isSynced == this.isSynced &&
+          other.syncAction == this.syncAction);
+}
+
+class WorkspacesTableCompanion extends UpdateCompanion<WorkspacesTableData> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> ownerId;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> isSynced;
+  final Value<String?> syncAction;
+  final Value<int> rowid;
+  const WorkspacesTableCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.ownerId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.syncAction = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  WorkspacesTableCompanion.insert({
+    required String id,
+    required String name,
+    required String ownerId,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.isSynced = const Value.absent(),
+    this.syncAction = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       ownerId = Value(ownerId),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<WorkspacesTableData> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? ownerId,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? isSynced,
+    Expression<String>? syncAction,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (ownerId != null) 'owner_id': ownerId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (syncAction != null) 'sync_action': syncAction,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  WorkspacesTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? ownerId,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? isSynced,
+    Value<String?>? syncAction,
+    Value<int>? rowid,
+  }) {
+    return WorkspacesTableCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      ownerId: ownerId ?? this.ownerId,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isSynced: isSynced ?? this.isSynced,
+      syncAction: syncAction ?? this.syncAction,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (ownerId.present) {
+      map['owner_id'] = Variable<String>(ownerId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (syncAction.present) {
+      map['sync_action'] = Variable<String>(syncAction.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WorkspacesTableCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('ownerId: $ownerId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('syncAction: $syncAction, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $WorkspaceMembersTableTable extends WorkspaceMembersTable
+    with TableInfo<$WorkspaceMembersTableTable, WorkspaceMembersTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WorkspaceMembersTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _workspaceIdMeta = const VerificationMeta(
+    'workspaceId',
+  );
+  @override
+  late final GeneratedColumn<String> workspaceId = GeneratedColumn<String>(
+    'workspace_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
+  @override
+  late final GeneratedColumn<String> role = GeneratedColumn<String>(
+    'role',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _joinedAtMeta = const VerificationMeta(
+    'joinedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> joinedAt = GeneratedColumn<DateTime>(
+    'joined_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isSyncedMeta = const VerificationMeta(
+    'isSynced',
+  );
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+    'is_synced',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_synced" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _syncActionMeta = const VerificationMeta(
+    'syncAction',
+  );
+  @override
+  late final GeneratedColumn<String> syncAction = GeneratedColumn<String>(
+    'sync_action',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    workspaceId,
+    userId,
+    role,
+    joinedAt,
+    isSynced,
+    syncAction,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'workspace_members_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WorkspaceMembersTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('workspace_id')) {
+      context.handle(
+        _workspaceIdMeta,
+        workspaceId.isAcceptableOrUnknown(
+          data['workspace_id']!,
+          _workspaceIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_workspaceIdMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('role')) {
+      context.handle(
+        _roleMeta,
+        role.isAcceptableOrUnknown(data['role']!, _roleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_roleMeta);
+    }
+    if (data.containsKey('joined_at')) {
+      context.handle(
+        _joinedAtMeta,
+        joinedAt.isAcceptableOrUnknown(data['joined_at']!, _joinedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_joinedAtMeta);
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(
+        _isSyncedMeta,
+        isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
+      );
+    }
+    if (data.containsKey('sync_action')) {
+      context.handle(
+        _syncActionMeta,
+        syncAction.isAcceptableOrUnknown(data['sync_action']!, _syncActionMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  WorkspaceMembersTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WorkspaceMembersTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      workspaceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}workspace_id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      role: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}role'],
+      )!,
+      joinedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}joined_at'],
+      )!,
+      isSynced: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_synced'],
+      )!,
+      syncAction: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_action'],
+      ),
+    );
+  }
+
+  @override
+  $WorkspaceMembersTableTable createAlias(String alias) {
+    return $WorkspaceMembersTableTable(attachedDatabase, alias);
+  }
+}
+
+class WorkspaceMembersTableData extends DataClass
+    implements Insertable<WorkspaceMembersTableData> {
+  final String id;
+  final String workspaceId;
+  final String userId;
+  final String role;
+  final DateTime joinedAt;
+  final bool isSynced;
+  final String? syncAction;
+  const WorkspaceMembersTableData({
+    required this.id,
+    required this.workspaceId,
+    required this.userId,
+    required this.role,
+    required this.joinedAt,
+    required this.isSynced,
+    this.syncAction,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['workspace_id'] = Variable<String>(workspaceId);
+    map['user_id'] = Variable<String>(userId);
+    map['role'] = Variable<String>(role);
+    map['joined_at'] = Variable<DateTime>(joinedAt);
+    map['is_synced'] = Variable<bool>(isSynced);
+    if (!nullToAbsent || syncAction != null) {
+      map['sync_action'] = Variable<String>(syncAction);
+    }
+    return map;
+  }
+
+  WorkspaceMembersTableCompanion toCompanion(bool nullToAbsent) {
+    return WorkspaceMembersTableCompanion(
+      id: Value(id),
+      workspaceId: Value(workspaceId),
+      userId: Value(userId),
+      role: Value(role),
+      joinedAt: Value(joinedAt),
+      isSynced: Value(isSynced),
+      syncAction: syncAction == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncAction),
+    );
+  }
+
+  factory WorkspaceMembersTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WorkspaceMembersTableData(
+      id: serializer.fromJson<String>(json['id']),
+      workspaceId: serializer.fromJson<String>(json['workspaceId']),
+      userId: serializer.fromJson<String>(json['userId']),
+      role: serializer.fromJson<String>(json['role']),
+      joinedAt: serializer.fromJson<DateTime>(json['joinedAt']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      syncAction: serializer.fromJson<String?>(json['syncAction']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'workspaceId': serializer.toJson<String>(workspaceId),
+      'userId': serializer.toJson<String>(userId),
+      'role': serializer.toJson<String>(role),
+      'joinedAt': serializer.toJson<DateTime>(joinedAt),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'syncAction': serializer.toJson<String?>(syncAction),
+    };
+  }
+
+  WorkspaceMembersTableData copyWith({
+    String? id,
+    String? workspaceId,
+    String? userId,
+    String? role,
+    DateTime? joinedAt,
+    bool? isSynced,
+    Value<String?> syncAction = const Value.absent(),
+  }) => WorkspaceMembersTableData(
+    id: id ?? this.id,
+    workspaceId: workspaceId ?? this.workspaceId,
+    userId: userId ?? this.userId,
+    role: role ?? this.role,
+    joinedAt: joinedAt ?? this.joinedAt,
+    isSynced: isSynced ?? this.isSynced,
+    syncAction: syncAction.present ? syncAction.value : this.syncAction,
+  );
+  WorkspaceMembersTableData copyWithCompanion(
+    WorkspaceMembersTableCompanion data,
+  ) {
+    return WorkspaceMembersTableData(
+      id: data.id.present ? data.id.value : this.id,
+      workspaceId: data.workspaceId.present
+          ? data.workspaceId.value
+          : this.workspaceId,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      role: data.role.present ? data.role.value : this.role,
+      joinedAt: data.joinedAt.present ? data.joinedAt.value : this.joinedAt,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      syncAction: data.syncAction.present
+          ? data.syncAction.value
+          : this.syncAction,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WorkspaceMembersTableData(')
+          ..write('id: $id, ')
+          ..write('workspaceId: $workspaceId, ')
+          ..write('userId: $userId, ')
+          ..write('role: $role, ')
+          ..write('joinedAt: $joinedAt, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('syncAction: $syncAction')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    workspaceId,
+    userId,
+    role,
+    joinedAt,
+    isSynced,
+    syncAction,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WorkspaceMembersTableData &&
+          other.id == this.id &&
+          other.workspaceId == this.workspaceId &&
+          other.userId == this.userId &&
+          other.role == this.role &&
+          other.joinedAt == this.joinedAt &&
+          other.isSynced == this.isSynced &&
+          other.syncAction == this.syncAction);
+}
+
+class WorkspaceMembersTableCompanion
+    extends UpdateCompanion<WorkspaceMembersTableData> {
+  final Value<String> id;
+  final Value<String> workspaceId;
+  final Value<String> userId;
+  final Value<String> role;
+  final Value<DateTime> joinedAt;
+  final Value<bool> isSynced;
+  final Value<String?> syncAction;
+  final Value<int> rowid;
+  const WorkspaceMembersTableCompanion({
+    this.id = const Value.absent(),
+    this.workspaceId = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.role = const Value.absent(),
+    this.joinedAt = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.syncAction = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  WorkspaceMembersTableCompanion.insert({
+    required String id,
+    required String workspaceId,
+    required String userId,
+    required String role,
+    required DateTime joinedAt,
+    this.isSynced = const Value.absent(),
+    this.syncAction = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       workspaceId = Value(workspaceId),
+       userId = Value(userId),
+       role = Value(role),
+       joinedAt = Value(joinedAt);
+  static Insertable<WorkspaceMembersTableData> custom({
+    Expression<String>? id,
+    Expression<String>? workspaceId,
+    Expression<String>? userId,
+    Expression<String>? role,
+    Expression<DateTime>? joinedAt,
+    Expression<bool>? isSynced,
+    Expression<String>? syncAction,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (workspaceId != null) 'workspace_id': workspaceId,
+      if (userId != null) 'user_id': userId,
+      if (role != null) 'role': role,
+      if (joinedAt != null) 'joined_at': joinedAt,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (syncAction != null) 'sync_action': syncAction,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  WorkspaceMembersTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? workspaceId,
+    Value<String>? userId,
+    Value<String>? role,
+    Value<DateTime>? joinedAt,
+    Value<bool>? isSynced,
+    Value<String?>? syncAction,
+    Value<int>? rowid,
+  }) {
+    return WorkspaceMembersTableCompanion(
+      id: id ?? this.id,
+      workspaceId: workspaceId ?? this.workspaceId,
+      userId: userId ?? this.userId,
+      role: role ?? this.role,
+      joinedAt: joinedAt ?? this.joinedAt,
+      isSynced: isSynced ?? this.isSynced,
+      syncAction: syncAction ?? this.syncAction,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (workspaceId.present) {
+      map['workspace_id'] = Variable<String>(workspaceId.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (role.present) {
+      map['role'] = Variable<String>(role.value);
+    }
+    if (joinedAt.present) {
+      map['joined_at'] = Variable<DateTime>(joinedAt.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (syncAction.present) {
+      map['sync_action'] = Variable<String>(syncAction.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WorkspaceMembersTableCompanion(')
+          ..write('id: $id, ')
+          ..write('workspaceId: $workspaceId, ')
+          ..write('userId: $userId, ')
+          ..write('role: $role, ')
+          ..write('joinedAt: $joinedAt, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('syncAction: $syncAction, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $BoardMembersTableTable extends BoardMembersTable
+    with TableInfo<$BoardMembersTableTable, BoardMembersTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BoardMembersTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _boardIdMeta = const VerificationMeta(
+    'boardId',
+  );
+  @override
+  late final GeneratedColumn<String> boardId = GeneratedColumn<String>(
+    'board_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
+  @override
+  late final GeneratedColumn<String> role = GeneratedColumn<String>(
+    'role',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _joinedAtMeta = const VerificationMeta(
+    'joinedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> joinedAt = GeneratedColumn<DateTime>(
+    'joined_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isSyncedMeta = const VerificationMeta(
+    'isSynced',
+  );
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+    'is_synced',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_synced" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _syncActionMeta = const VerificationMeta(
+    'syncAction',
+  );
+  @override
+  late final GeneratedColumn<String> syncAction = GeneratedColumn<String>(
+    'sync_action',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    boardId,
+    userId,
+    role,
+    joinedAt,
+    isSynced,
+    syncAction,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'board_members_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BoardMembersTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('board_id')) {
+      context.handle(
+        _boardIdMeta,
+        boardId.isAcceptableOrUnknown(data['board_id']!, _boardIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_boardIdMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('role')) {
+      context.handle(
+        _roleMeta,
+        role.isAcceptableOrUnknown(data['role']!, _roleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_roleMeta);
+    }
+    if (data.containsKey('joined_at')) {
+      context.handle(
+        _joinedAtMeta,
+        joinedAt.isAcceptableOrUnknown(data['joined_at']!, _joinedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_joinedAtMeta);
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(
+        _isSyncedMeta,
+        isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
+      );
+    }
+    if (data.containsKey('sync_action')) {
+      context.handle(
+        _syncActionMeta,
+        syncAction.isAcceptableOrUnknown(data['sync_action']!, _syncActionMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  BoardMembersTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BoardMembersTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      boardId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}board_id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      role: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}role'],
+      )!,
+      joinedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}joined_at'],
+      )!,
+      isSynced: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_synced'],
+      )!,
+      syncAction: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_action'],
+      ),
+    );
+  }
+
+  @override
+  $BoardMembersTableTable createAlias(String alias) {
+    return $BoardMembersTableTable(attachedDatabase, alias);
+  }
+}
+
+class BoardMembersTableData extends DataClass
+    implements Insertable<BoardMembersTableData> {
+  final String id;
+  final String boardId;
+  final String userId;
+  final String role;
+  final DateTime joinedAt;
+  final bool isSynced;
+  final String? syncAction;
+  const BoardMembersTableData({
+    required this.id,
+    required this.boardId,
+    required this.userId,
+    required this.role,
+    required this.joinedAt,
+    required this.isSynced,
+    this.syncAction,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['board_id'] = Variable<String>(boardId);
+    map['user_id'] = Variable<String>(userId);
+    map['role'] = Variable<String>(role);
+    map['joined_at'] = Variable<DateTime>(joinedAt);
+    map['is_synced'] = Variable<bool>(isSynced);
+    if (!nullToAbsent || syncAction != null) {
+      map['sync_action'] = Variable<String>(syncAction);
+    }
+    return map;
+  }
+
+  BoardMembersTableCompanion toCompanion(bool nullToAbsent) {
+    return BoardMembersTableCompanion(
+      id: Value(id),
+      boardId: Value(boardId),
+      userId: Value(userId),
+      role: Value(role),
+      joinedAt: Value(joinedAt),
+      isSynced: Value(isSynced),
+      syncAction: syncAction == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncAction),
+    );
+  }
+
+  factory BoardMembersTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BoardMembersTableData(
+      id: serializer.fromJson<String>(json['id']),
+      boardId: serializer.fromJson<String>(json['boardId']),
+      userId: serializer.fromJson<String>(json['userId']),
+      role: serializer.fromJson<String>(json['role']),
+      joinedAt: serializer.fromJson<DateTime>(json['joinedAt']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      syncAction: serializer.fromJson<String?>(json['syncAction']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'boardId': serializer.toJson<String>(boardId),
+      'userId': serializer.toJson<String>(userId),
+      'role': serializer.toJson<String>(role),
+      'joinedAt': serializer.toJson<DateTime>(joinedAt),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'syncAction': serializer.toJson<String?>(syncAction),
+    };
+  }
+
+  BoardMembersTableData copyWith({
+    String? id,
+    String? boardId,
+    String? userId,
+    String? role,
+    DateTime? joinedAt,
+    bool? isSynced,
+    Value<String?> syncAction = const Value.absent(),
+  }) => BoardMembersTableData(
+    id: id ?? this.id,
+    boardId: boardId ?? this.boardId,
+    userId: userId ?? this.userId,
+    role: role ?? this.role,
+    joinedAt: joinedAt ?? this.joinedAt,
+    isSynced: isSynced ?? this.isSynced,
+    syncAction: syncAction.present ? syncAction.value : this.syncAction,
+  );
+  BoardMembersTableData copyWithCompanion(BoardMembersTableCompanion data) {
+    return BoardMembersTableData(
+      id: data.id.present ? data.id.value : this.id,
+      boardId: data.boardId.present ? data.boardId.value : this.boardId,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      role: data.role.present ? data.role.value : this.role,
+      joinedAt: data.joinedAt.present ? data.joinedAt.value : this.joinedAt,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      syncAction: data.syncAction.present
+          ? data.syncAction.value
+          : this.syncAction,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BoardMembersTableData(')
+          ..write('id: $id, ')
+          ..write('boardId: $boardId, ')
+          ..write('userId: $userId, ')
+          ..write('role: $role, ')
+          ..write('joinedAt: $joinedAt, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('syncAction: $syncAction')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, boardId, userId, role, joinedAt, isSynced, syncAction);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BoardMembersTableData &&
+          other.id == this.id &&
+          other.boardId == this.boardId &&
+          other.userId == this.userId &&
+          other.role == this.role &&
+          other.joinedAt == this.joinedAt &&
+          other.isSynced == this.isSynced &&
+          other.syncAction == this.syncAction);
+}
+
+class BoardMembersTableCompanion
+    extends UpdateCompanion<BoardMembersTableData> {
+  final Value<String> id;
+  final Value<String> boardId;
+  final Value<String> userId;
+  final Value<String> role;
+  final Value<DateTime> joinedAt;
+  final Value<bool> isSynced;
+  final Value<String?> syncAction;
+  final Value<int> rowid;
+  const BoardMembersTableCompanion({
+    this.id = const Value.absent(),
+    this.boardId = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.role = const Value.absent(),
+    this.joinedAt = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.syncAction = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BoardMembersTableCompanion.insert({
+    required String id,
+    required String boardId,
+    required String userId,
+    required String role,
+    required DateTime joinedAt,
+    this.isSynced = const Value.absent(),
+    this.syncAction = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       boardId = Value(boardId),
+       userId = Value(userId),
+       role = Value(role),
+       joinedAt = Value(joinedAt);
+  static Insertable<BoardMembersTableData> custom({
+    Expression<String>? id,
+    Expression<String>? boardId,
+    Expression<String>? userId,
+    Expression<String>? role,
+    Expression<DateTime>? joinedAt,
+    Expression<bool>? isSynced,
+    Expression<String>? syncAction,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (boardId != null) 'board_id': boardId,
+      if (userId != null) 'user_id': userId,
+      if (role != null) 'role': role,
+      if (joinedAt != null) 'joined_at': joinedAt,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (syncAction != null) 'sync_action': syncAction,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BoardMembersTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? boardId,
+    Value<String>? userId,
+    Value<String>? role,
+    Value<DateTime>? joinedAt,
+    Value<bool>? isSynced,
+    Value<String?>? syncAction,
+    Value<int>? rowid,
+  }) {
+    return BoardMembersTableCompanion(
+      id: id ?? this.id,
+      boardId: boardId ?? this.boardId,
+      userId: userId ?? this.userId,
+      role: role ?? this.role,
+      joinedAt: joinedAt ?? this.joinedAt,
+      isSynced: isSynced ?? this.isSynced,
+      syncAction: syncAction ?? this.syncAction,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (boardId.present) {
+      map['board_id'] = Variable<String>(boardId.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (role.present) {
+      map['role'] = Variable<String>(role.value);
+    }
+    if (joinedAt.present) {
+      map['joined_at'] = Variable<DateTime>(joinedAt.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (syncAction.present) {
+      map['sync_action'] = Variable<String>(syncAction.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BoardMembersTableCompanion(')
+          ..write('id: $id, ')
+          ..write('boardId: $boardId, ')
+          ..write('userId: $userId, ')
+          ..write('role: $role, ')
+          ..write('joinedAt: $joinedAt, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('syncAction: $syncAction, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TaskAssigneesTableTable extends TaskAssigneesTable
+    with TableInfo<$TaskAssigneesTableTable, TaskAssigneesTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TaskAssigneesTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _taskIdMeta = const VerificationMeta('taskId');
+  @override
+  late final GeneratedColumn<String> taskId = GeneratedColumn<String>(
+    'task_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _assignedByMeta = const VerificationMeta(
+    'assignedBy',
+  );
+  @override
+  late final GeneratedColumn<String> assignedBy = GeneratedColumn<String>(
+    'assigned_by',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _assignedAtMeta = const VerificationMeta(
+    'assignedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> assignedAt = GeneratedColumn<DateTime>(
+    'assigned_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isSyncedMeta = const VerificationMeta(
+    'isSynced',
+  );
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+    'is_synced',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_synced" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _syncActionMeta = const VerificationMeta(
+    'syncAction',
+  );
+  @override
+  late final GeneratedColumn<String> syncAction = GeneratedColumn<String>(
+    'sync_action',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    taskId,
+    userId,
+    assignedBy,
+    assignedAt,
+    isSynced,
+    syncAction,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'task_assignees_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TaskAssigneesTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('task_id')) {
+      context.handle(
+        _taskIdMeta,
+        taskId.isAcceptableOrUnknown(data['task_id']!, _taskIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_taskIdMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('assigned_by')) {
+      context.handle(
+        _assignedByMeta,
+        assignedBy.isAcceptableOrUnknown(data['assigned_by']!, _assignedByMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_assignedByMeta);
+    }
+    if (data.containsKey('assigned_at')) {
+      context.handle(
+        _assignedAtMeta,
+        assignedAt.isAcceptableOrUnknown(data['assigned_at']!, _assignedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_assignedAtMeta);
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(
+        _isSyncedMeta,
+        isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
+      );
+    }
+    if (data.containsKey('sync_action')) {
+      context.handle(
+        _syncActionMeta,
+        syncAction.isAcceptableOrUnknown(data['sync_action']!, _syncActionMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TaskAssigneesTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TaskAssigneesTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      taskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}task_id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      assignedBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}assigned_by'],
+      )!,
+      assignedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}assigned_at'],
+      )!,
+      isSynced: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_synced'],
+      )!,
+      syncAction: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_action'],
+      ),
+    );
+  }
+
+  @override
+  $TaskAssigneesTableTable createAlias(String alias) {
+    return $TaskAssigneesTableTable(attachedDatabase, alias);
+  }
+}
+
+class TaskAssigneesTableData extends DataClass
+    implements Insertable<TaskAssigneesTableData> {
+  final String id;
+  final String taskId;
+  final String userId;
+  final String assignedBy;
+  final DateTime assignedAt;
+  final bool isSynced;
+  final String? syncAction;
+  const TaskAssigneesTableData({
+    required this.id,
+    required this.taskId,
+    required this.userId,
+    required this.assignedBy,
+    required this.assignedAt,
+    required this.isSynced,
+    this.syncAction,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['task_id'] = Variable<String>(taskId);
+    map['user_id'] = Variable<String>(userId);
+    map['assigned_by'] = Variable<String>(assignedBy);
+    map['assigned_at'] = Variable<DateTime>(assignedAt);
+    map['is_synced'] = Variable<bool>(isSynced);
+    if (!nullToAbsent || syncAction != null) {
+      map['sync_action'] = Variable<String>(syncAction);
+    }
+    return map;
+  }
+
+  TaskAssigneesTableCompanion toCompanion(bool nullToAbsent) {
+    return TaskAssigneesTableCompanion(
+      id: Value(id),
+      taskId: Value(taskId),
+      userId: Value(userId),
+      assignedBy: Value(assignedBy),
+      assignedAt: Value(assignedAt),
+      isSynced: Value(isSynced),
+      syncAction: syncAction == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncAction),
+    );
+  }
+
+  factory TaskAssigneesTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TaskAssigneesTableData(
+      id: serializer.fromJson<String>(json['id']),
+      taskId: serializer.fromJson<String>(json['taskId']),
+      userId: serializer.fromJson<String>(json['userId']),
+      assignedBy: serializer.fromJson<String>(json['assignedBy']),
+      assignedAt: serializer.fromJson<DateTime>(json['assignedAt']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      syncAction: serializer.fromJson<String?>(json['syncAction']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'taskId': serializer.toJson<String>(taskId),
+      'userId': serializer.toJson<String>(userId),
+      'assignedBy': serializer.toJson<String>(assignedBy),
+      'assignedAt': serializer.toJson<DateTime>(assignedAt),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'syncAction': serializer.toJson<String?>(syncAction),
+    };
+  }
+
+  TaskAssigneesTableData copyWith({
+    String? id,
+    String? taskId,
+    String? userId,
+    String? assignedBy,
+    DateTime? assignedAt,
+    bool? isSynced,
+    Value<String?> syncAction = const Value.absent(),
+  }) => TaskAssigneesTableData(
+    id: id ?? this.id,
+    taskId: taskId ?? this.taskId,
+    userId: userId ?? this.userId,
+    assignedBy: assignedBy ?? this.assignedBy,
+    assignedAt: assignedAt ?? this.assignedAt,
+    isSynced: isSynced ?? this.isSynced,
+    syncAction: syncAction.present ? syncAction.value : this.syncAction,
+  );
+  TaskAssigneesTableData copyWithCompanion(TaskAssigneesTableCompanion data) {
+    return TaskAssigneesTableData(
+      id: data.id.present ? data.id.value : this.id,
+      taskId: data.taskId.present ? data.taskId.value : this.taskId,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      assignedBy: data.assignedBy.present
+          ? data.assignedBy.value
+          : this.assignedBy,
+      assignedAt: data.assignedAt.present
+          ? data.assignedAt.value
+          : this.assignedAt,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      syncAction: data.syncAction.present
+          ? data.syncAction.value
+          : this.syncAction,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaskAssigneesTableData(')
+          ..write('id: $id, ')
+          ..write('taskId: $taskId, ')
+          ..write('userId: $userId, ')
+          ..write('assignedBy: $assignedBy, ')
+          ..write('assignedAt: $assignedAt, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('syncAction: $syncAction')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    taskId,
+    userId,
+    assignedBy,
+    assignedAt,
+    isSynced,
+    syncAction,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TaskAssigneesTableData &&
+          other.id == this.id &&
+          other.taskId == this.taskId &&
+          other.userId == this.userId &&
+          other.assignedBy == this.assignedBy &&
+          other.assignedAt == this.assignedAt &&
+          other.isSynced == this.isSynced &&
+          other.syncAction == this.syncAction);
+}
+
+class TaskAssigneesTableCompanion
+    extends UpdateCompanion<TaskAssigneesTableData> {
+  final Value<String> id;
+  final Value<String> taskId;
+  final Value<String> userId;
+  final Value<String> assignedBy;
+  final Value<DateTime> assignedAt;
+  final Value<bool> isSynced;
+  final Value<String?> syncAction;
+  final Value<int> rowid;
+  const TaskAssigneesTableCompanion({
+    this.id = const Value.absent(),
+    this.taskId = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.assignedBy = const Value.absent(),
+    this.assignedAt = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.syncAction = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TaskAssigneesTableCompanion.insert({
+    required String id,
+    required String taskId,
+    required String userId,
+    required String assignedBy,
+    required DateTime assignedAt,
+    this.isSynced = const Value.absent(),
+    this.syncAction = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       taskId = Value(taskId),
+       userId = Value(userId),
+       assignedBy = Value(assignedBy),
+       assignedAt = Value(assignedAt);
+  static Insertable<TaskAssigneesTableData> custom({
+    Expression<String>? id,
+    Expression<String>? taskId,
+    Expression<String>? userId,
+    Expression<String>? assignedBy,
+    Expression<DateTime>? assignedAt,
+    Expression<bool>? isSynced,
+    Expression<String>? syncAction,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (taskId != null) 'task_id': taskId,
+      if (userId != null) 'user_id': userId,
+      if (assignedBy != null) 'assigned_by': assignedBy,
+      if (assignedAt != null) 'assigned_at': assignedAt,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (syncAction != null) 'sync_action': syncAction,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TaskAssigneesTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? taskId,
+    Value<String>? userId,
+    Value<String>? assignedBy,
+    Value<DateTime>? assignedAt,
+    Value<bool>? isSynced,
+    Value<String?>? syncAction,
+    Value<int>? rowid,
+  }) {
+    return TaskAssigneesTableCompanion(
+      id: id ?? this.id,
+      taskId: taskId ?? this.taskId,
+      userId: userId ?? this.userId,
+      assignedBy: assignedBy ?? this.assignedBy,
+      assignedAt: assignedAt ?? this.assignedAt,
+      isSynced: isSynced ?? this.isSynced,
+      syncAction: syncAction ?? this.syncAction,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (taskId.present) {
+      map['task_id'] = Variable<String>(taskId.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (assignedBy.present) {
+      map['assigned_by'] = Variable<String>(assignedBy.value);
+    }
+    if (assignedAt.present) {
+      map['assigned_at'] = Variable<DateTime>(assignedAt.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (syncAction.present) {
+      map['sync_action'] = Variable<String>(syncAction.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaskAssigneesTableCompanion(')
+          ..write('id: $id, ')
+          ..write('taskId: $taskId, ')
+          ..write('userId: $userId, ')
+          ..write('assignedBy: $assignedBy, ')
+          ..write('assignedAt: $assignedAt, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('syncAction: $syncAction, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TaskCommentsTableTable extends TaskCommentsTable
+    with TableInfo<$TaskCommentsTableTable, TaskCommentsTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TaskCommentsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _taskIdMeta = const VerificationMeta('taskId');
+  @override
+  late final GeneratedColumn<String> taskId = GeneratedColumn<String>(
+    'task_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _authorIdMeta = const VerificationMeta(
+    'authorId',
+  );
+  @override
+  late final GeneratedColumn<String> authorId = GeneratedColumn<String>(
+    'author_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 5000,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isSyncedMeta = const VerificationMeta(
+    'isSynced',
+  );
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+    'is_synced',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_synced" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _syncActionMeta = const VerificationMeta(
+    'syncAction',
+  );
+  @override
+  late final GeneratedColumn<String> syncAction = GeneratedColumn<String>(
+    'sync_action',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    taskId,
+    authorId,
+    content,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    isSynced,
+    syncAction,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'task_comments_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TaskCommentsTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('task_id')) {
+      context.handle(
+        _taskIdMeta,
+        taskId.isAcceptableOrUnknown(data['task_id']!, _taskIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_taskIdMeta);
+    }
+    if (data.containsKey('author_id')) {
+      context.handle(
+        _authorIdMeta,
+        authorId.isAcceptableOrUnknown(data['author_id']!, _authorIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_authorIdMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(
+        _isSyncedMeta,
+        isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
+      );
+    }
+    if (data.containsKey('sync_action')) {
+      context.handle(
+        _syncActionMeta,
+        syncAction.isAcceptableOrUnknown(data['sync_action']!, _syncActionMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TaskCommentsTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TaskCommentsTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      taskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}task_id'],
+      )!,
+      authorId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}author_id'],
+      )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      isSynced: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_synced'],
+      )!,
+      syncAction: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_action'],
+      ),
+    );
+  }
+
+  @override
+  $TaskCommentsTableTable createAlias(String alias) {
+    return $TaskCommentsTableTable(attachedDatabase, alias);
+  }
+}
+
+class TaskCommentsTableData extends DataClass
+    implements Insertable<TaskCommentsTableData> {
+  final String id;
+  final String taskId;
+  final String authorId;
+  final String content;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final bool isSynced;
+  final String? syncAction;
+  const TaskCommentsTableData({
+    required this.id,
+    required this.taskId,
+    required this.authorId,
+    required this.content,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+    required this.isSynced,
+    this.syncAction,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['task_id'] = Variable<String>(taskId);
+    map['author_id'] = Variable<String>(authorId);
+    map['content'] = Variable<String>(content);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['is_synced'] = Variable<bool>(isSynced);
+    if (!nullToAbsent || syncAction != null) {
+      map['sync_action'] = Variable<String>(syncAction);
+    }
+    return map;
+  }
+
+  TaskCommentsTableCompanion toCompanion(bool nullToAbsent) {
+    return TaskCommentsTableCompanion(
+      id: Value(id),
+      taskId: Value(taskId),
+      authorId: Value(authorId),
+      content: Value(content),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      isSynced: Value(isSynced),
+      syncAction: syncAction == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncAction),
+    );
+  }
+
+  factory TaskCommentsTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TaskCommentsTableData(
+      id: serializer.fromJson<String>(json['id']),
+      taskId: serializer.fromJson<String>(json['taskId']),
+      authorId: serializer.fromJson<String>(json['authorId']),
+      content: serializer.fromJson<String>(json['content']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      syncAction: serializer.fromJson<String?>(json['syncAction']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'taskId': serializer.toJson<String>(taskId),
+      'authorId': serializer.toJson<String>(authorId),
+      'content': serializer.toJson<String>(content),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'syncAction': serializer.toJson<String?>(syncAction),
+    };
+  }
+
+  TaskCommentsTableData copyWith({
+    String? id,
+    String? taskId,
+    String? authorId,
+    String? content,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    bool? isSynced,
+    Value<String?> syncAction = const Value.absent(),
+  }) => TaskCommentsTableData(
+    id: id ?? this.id,
+    taskId: taskId ?? this.taskId,
+    authorId: authorId ?? this.authorId,
+    content: content ?? this.content,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    isSynced: isSynced ?? this.isSynced,
+    syncAction: syncAction.present ? syncAction.value : this.syncAction,
+  );
+  TaskCommentsTableData copyWithCompanion(TaskCommentsTableCompanion data) {
+    return TaskCommentsTableData(
+      id: data.id.present ? data.id.value : this.id,
+      taskId: data.taskId.present ? data.taskId.value : this.taskId,
+      authorId: data.authorId.present ? data.authorId.value : this.authorId,
+      content: data.content.present ? data.content.value : this.content,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      syncAction: data.syncAction.present
+          ? data.syncAction.value
+          : this.syncAction,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaskCommentsTableData(')
+          ..write('id: $id, ')
+          ..write('taskId: $taskId, ')
+          ..write('authorId: $authorId, ')
+          ..write('content: $content, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('syncAction: $syncAction')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    taskId,
+    authorId,
+    content,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    isSynced,
+    syncAction,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TaskCommentsTableData &&
+          other.id == this.id &&
+          other.taskId == this.taskId &&
+          other.authorId == this.authorId &&
+          other.content == this.content &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.isSynced == this.isSynced &&
+          other.syncAction == this.syncAction);
+}
+
+class TaskCommentsTableCompanion
+    extends UpdateCompanion<TaskCommentsTableData> {
+  final Value<String> id;
+  final Value<String> taskId;
+  final Value<String> authorId;
+  final Value<String> content;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<bool> isSynced;
+  final Value<String?> syncAction;
+  final Value<int> rowid;
+  const TaskCommentsTableCompanion({
+    this.id = const Value.absent(),
+    this.taskId = const Value.absent(),
+    this.authorId = const Value.absent(),
+    this.content = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.syncAction = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TaskCommentsTableCompanion.insert({
+    required String id,
+    required String taskId,
+    required String authorId,
+    required String content,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deletedAt = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.syncAction = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       taskId = Value(taskId),
+       authorId = Value(authorId),
+       content = Value(content),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<TaskCommentsTableData> custom({
+    Expression<String>? id,
+    Expression<String>? taskId,
+    Expression<String>? authorId,
+    Expression<String>? content,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<bool>? isSynced,
+    Expression<String>? syncAction,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (taskId != null) 'task_id': taskId,
+      if (authorId != null) 'author_id': authorId,
+      if (content != null) 'content': content,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (syncAction != null) 'sync_action': syncAction,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TaskCommentsTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? taskId,
+    Value<String>? authorId,
+    Value<String>? content,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<bool>? isSynced,
+    Value<String?>? syncAction,
+    Value<int>? rowid,
+  }) {
+    return TaskCommentsTableCompanion(
+      id: id ?? this.id,
+      taskId: taskId ?? this.taskId,
+      authorId: authorId ?? this.authorId,
+      content: content ?? this.content,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      isSynced: isSynced ?? this.isSynced,
+      syncAction: syncAction ?? this.syncAction,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (taskId.present) {
+      map['task_id'] = Variable<String>(taskId.value);
+    }
+    if (authorId.present) {
+      map['author_id'] = Variable<String>(authorId.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (syncAction.present) {
+      map['sync_action'] = Variable<String>(syncAction.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaskCommentsTableCompanion(')
+          ..write('id: $id, ')
+          ..write('taskId: $taskId, ')
+          ..write('authorId: $authorId, ')
+          ..write('content: $content, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('syncAction: $syncAction, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $InvitationsTableTable extends InvitationsTable
+    with TableInfo<$InvitationsTableTable, InvitationsTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $InvitationsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _emailMeta = const VerificationMeta('email');
+  @override
+  late final GeneratedColumn<String> email = GeneratedColumn<String>(
+    'email',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _workspaceIdMeta = const VerificationMeta(
+    'workspaceId',
+  );
+  @override
+  late final GeneratedColumn<String> workspaceId = GeneratedColumn<String>(
+    'workspace_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _boardIdMeta = const VerificationMeta(
+    'boardId',
+  );
+  @override
+  late final GeneratedColumn<String> boardId = GeneratedColumn<String>(
+    'board_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
+  @override
+  late final GeneratedColumn<String> role = GeneratedColumn<String>(
+    'role',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tokenMeta = const VerificationMeta('token');
+  @override
+  late final GeneratedColumn<String> token = GeneratedColumn<String>(
+    'token',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _invitedByMeta = const VerificationMeta(
+    'invitedBy',
+  );
+  @override
+  late final GeneratedColumn<String> invitedBy = GeneratedColumn<String>(
+    'invited_by',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _expiresAtMeta = const VerificationMeta(
+    'expiresAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> expiresAt = GeneratedColumn<DateTime>(
+    'expires_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _acceptedAtMeta = const VerificationMeta(
+    'acceptedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> acceptedAt = GeneratedColumn<DateTime>(
+    'accepted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _declinedAtMeta = const VerificationMeta(
+    'declinedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> declinedAt = GeneratedColumn<DateTime>(
+    'declined_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isSyncedMeta = const VerificationMeta(
+    'isSynced',
+  );
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+    'is_synced',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_synced" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _syncActionMeta = const VerificationMeta(
+    'syncAction',
+  );
+  @override
+  late final GeneratedColumn<String> syncAction = GeneratedColumn<String>(
+    'sync_action',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    email,
+    workspaceId,
+    boardId,
+    role,
+    token,
+    invitedBy,
+    expiresAt,
+    acceptedAt,
+    declinedAt,
+    createdAt,
+    isSynced,
+    syncAction,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'invitations_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<InvitationsTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('email')) {
+      context.handle(
+        _emailMeta,
+        email.isAcceptableOrUnknown(data['email']!, _emailMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_emailMeta);
+    }
+    if (data.containsKey('workspace_id')) {
+      context.handle(
+        _workspaceIdMeta,
+        workspaceId.isAcceptableOrUnknown(
+          data['workspace_id']!,
+          _workspaceIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('board_id')) {
+      context.handle(
+        _boardIdMeta,
+        boardId.isAcceptableOrUnknown(data['board_id']!, _boardIdMeta),
+      );
+    }
+    if (data.containsKey('role')) {
+      context.handle(
+        _roleMeta,
+        role.isAcceptableOrUnknown(data['role']!, _roleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_roleMeta);
+    }
+    if (data.containsKey('token')) {
+      context.handle(
+        _tokenMeta,
+        token.isAcceptableOrUnknown(data['token']!, _tokenMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tokenMeta);
+    }
+    if (data.containsKey('invited_by')) {
+      context.handle(
+        _invitedByMeta,
+        invitedBy.isAcceptableOrUnknown(data['invited_by']!, _invitedByMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_invitedByMeta);
+    }
+    if (data.containsKey('expires_at')) {
+      context.handle(
+        _expiresAtMeta,
+        expiresAt.isAcceptableOrUnknown(data['expires_at']!, _expiresAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_expiresAtMeta);
+    }
+    if (data.containsKey('accepted_at')) {
+      context.handle(
+        _acceptedAtMeta,
+        acceptedAt.isAcceptableOrUnknown(data['accepted_at']!, _acceptedAtMeta),
+      );
+    }
+    if (data.containsKey('declined_at')) {
+      context.handle(
+        _declinedAtMeta,
+        declinedAt.isAcceptableOrUnknown(data['declined_at']!, _declinedAtMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(
+        _isSyncedMeta,
+        isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
+      );
+    }
+    if (data.containsKey('sync_action')) {
+      context.handle(
+        _syncActionMeta,
+        syncAction.isAcceptableOrUnknown(data['sync_action']!, _syncActionMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  InvitationsTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return InvitationsTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      email: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}email'],
+      )!,
+      workspaceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}workspace_id'],
+      ),
+      boardId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}board_id'],
+      ),
+      role: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}role'],
+      )!,
+      token: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}token'],
+      )!,
+      invitedBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}invited_by'],
+      )!,
+      expiresAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}expires_at'],
+      )!,
+      acceptedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}accepted_at'],
+      ),
+      declinedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}declined_at'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      isSynced: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_synced'],
+      )!,
+      syncAction: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_action'],
+      ),
+    );
+  }
+
+  @override
+  $InvitationsTableTable createAlias(String alias) {
+    return $InvitationsTableTable(attachedDatabase, alias);
+  }
+}
+
+class InvitationsTableData extends DataClass
+    implements Insertable<InvitationsTableData> {
+  final String id;
+  final String email;
+  final String? workspaceId;
+  final String? boardId;
+  final String role;
+  final String token;
+  final String invitedBy;
+  final DateTime expiresAt;
+  final DateTime? acceptedAt;
+  final DateTime? declinedAt;
+  final DateTime createdAt;
+  final bool isSynced;
+  final String? syncAction;
+  const InvitationsTableData({
+    required this.id,
+    required this.email,
+    this.workspaceId,
+    this.boardId,
+    required this.role,
+    required this.token,
+    required this.invitedBy,
+    required this.expiresAt,
+    this.acceptedAt,
+    this.declinedAt,
+    required this.createdAt,
+    required this.isSynced,
+    this.syncAction,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['email'] = Variable<String>(email);
+    if (!nullToAbsent || workspaceId != null) {
+      map['workspace_id'] = Variable<String>(workspaceId);
+    }
+    if (!nullToAbsent || boardId != null) {
+      map['board_id'] = Variable<String>(boardId);
+    }
+    map['role'] = Variable<String>(role);
+    map['token'] = Variable<String>(token);
+    map['invited_by'] = Variable<String>(invitedBy);
+    map['expires_at'] = Variable<DateTime>(expiresAt);
+    if (!nullToAbsent || acceptedAt != null) {
+      map['accepted_at'] = Variable<DateTime>(acceptedAt);
+    }
+    if (!nullToAbsent || declinedAt != null) {
+      map['declined_at'] = Variable<DateTime>(declinedAt);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['is_synced'] = Variable<bool>(isSynced);
+    if (!nullToAbsent || syncAction != null) {
+      map['sync_action'] = Variable<String>(syncAction);
+    }
+    return map;
+  }
+
+  InvitationsTableCompanion toCompanion(bool nullToAbsent) {
+    return InvitationsTableCompanion(
+      id: Value(id),
+      email: Value(email),
+      workspaceId: workspaceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(workspaceId),
+      boardId: boardId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(boardId),
+      role: Value(role),
+      token: Value(token),
+      invitedBy: Value(invitedBy),
+      expiresAt: Value(expiresAt),
+      acceptedAt: acceptedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(acceptedAt),
+      declinedAt: declinedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(declinedAt),
+      createdAt: Value(createdAt),
+      isSynced: Value(isSynced),
+      syncAction: syncAction == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncAction),
+    );
+  }
+
+  factory InvitationsTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return InvitationsTableData(
+      id: serializer.fromJson<String>(json['id']),
+      email: serializer.fromJson<String>(json['email']),
+      workspaceId: serializer.fromJson<String?>(json['workspaceId']),
+      boardId: serializer.fromJson<String?>(json['boardId']),
+      role: serializer.fromJson<String>(json['role']),
+      token: serializer.fromJson<String>(json['token']),
+      invitedBy: serializer.fromJson<String>(json['invitedBy']),
+      expiresAt: serializer.fromJson<DateTime>(json['expiresAt']),
+      acceptedAt: serializer.fromJson<DateTime?>(json['acceptedAt']),
+      declinedAt: serializer.fromJson<DateTime?>(json['declinedAt']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      syncAction: serializer.fromJson<String?>(json['syncAction']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'email': serializer.toJson<String>(email),
+      'workspaceId': serializer.toJson<String?>(workspaceId),
+      'boardId': serializer.toJson<String?>(boardId),
+      'role': serializer.toJson<String>(role),
+      'token': serializer.toJson<String>(token),
+      'invitedBy': serializer.toJson<String>(invitedBy),
+      'expiresAt': serializer.toJson<DateTime>(expiresAt),
+      'acceptedAt': serializer.toJson<DateTime?>(acceptedAt),
+      'declinedAt': serializer.toJson<DateTime?>(declinedAt),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'syncAction': serializer.toJson<String?>(syncAction),
+    };
+  }
+
+  InvitationsTableData copyWith({
+    String? id,
+    String? email,
+    Value<String?> workspaceId = const Value.absent(),
+    Value<String?> boardId = const Value.absent(),
+    String? role,
+    String? token,
+    String? invitedBy,
+    DateTime? expiresAt,
+    Value<DateTime?> acceptedAt = const Value.absent(),
+    Value<DateTime?> declinedAt = const Value.absent(),
+    DateTime? createdAt,
+    bool? isSynced,
+    Value<String?> syncAction = const Value.absent(),
+  }) => InvitationsTableData(
+    id: id ?? this.id,
+    email: email ?? this.email,
+    workspaceId: workspaceId.present ? workspaceId.value : this.workspaceId,
+    boardId: boardId.present ? boardId.value : this.boardId,
+    role: role ?? this.role,
+    token: token ?? this.token,
+    invitedBy: invitedBy ?? this.invitedBy,
+    expiresAt: expiresAt ?? this.expiresAt,
+    acceptedAt: acceptedAt.present ? acceptedAt.value : this.acceptedAt,
+    declinedAt: declinedAt.present ? declinedAt.value : this.declinedAt,
+    createdAt: createdAt ?? this.createdAt,
+    isSynced: isSynced ?? this.isSynced,
+    syncAction: syncAction.present ? syncAction.value : this.syncAction,
+  );
+  InvitationsTableData copyWithCompanion(InvitationsTableCompanion data) {
+    return InvitationsTableData(
+      id: data.id.present ? data.id.value : this.id,
+      email: data.email.present ? data.email.value : this.email,
+      workspaceId: data.workspaceId.present
+          ? data.workspaceId.value
+          : this.workspaceId,
+      boardId: data.boardId.present ? data.boardId.value : this.boardId,
+      role: data.role.present ? data.role.value : this.role,
+      token: data.token.present ? data.token.value : this.token,
+      invitedBy: data.invitedBy.present ? data.invitedBy.value : this.invitedBy,
+      expiresAt: data.expiresAt.present ? data.expiresAt.value : this.expiresAt,
+      acceptedAt: data.acceptedAt.present
+          ? data.acceptedAt.value
+          : this.acceptedAt,
+      declinedAt: data.declinedAt.present
+          ? data.declinedAt.value
+          : this.declinedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      syncAction: data.syncAction.present
+          ? data.syncAction.value
+          : this.syncAction,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('InvitationsTableData(')
+          ..write('id: $id, ')
+          ..write('email: $email, ')
+          ..write('workspaceId: $workspaceId, ')
+          ..write('boardId: $boardId, ')
+          ..write('role: $role, ')
+          ..write('token: $token, ')
+          ..write('invitedBy: $invitedBy, ')
+          ..write('expiresAt: $expiresAt, ')
+          ..write('acceptedAt: $acceptedAt, ')
+          ..write('declinedAt: $declinedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('syncAction: $syncAction')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    email,
+    workspaceId,
+    boardId,
+    role,
+    token,
+    invitedBy,
+    expiresAt,
+    acceptedAt,
+    declinedAt,
+    createdAt,
+    isSynced,
+    syncAction,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is InvitationsTableData &&
+          other.id == this.id &&
+          other.email == this.email &&
+          other.workspaceId == this.workspaceId &&
+          other.boardId == this.boardId &&
+          other.role == this.role &&
+          other.token == this.token &&
+          other.invitedBy == this.invitedBy &&
+          other.expiresAt == this.expiresAt &&
+          other.acceptedAt == this.acceptedAt &&
+          other.declinedAt == this.declinedAt &&
+          other.createdAt == this.createdAt &&
+          other.isSynced == this.isSynced &&
+          other.syncAction == this.syncAction);
+}
+
+class InvitationsTableCompanion extends UpdateCompanion<InvitationsTableData> {
+  final Value<String> id;
+  final Value<String> email;
+  final Value<String?> workspaceId;
+  final Value<String?> boardId;
+  final Value<String> role;
+  final Value<String> token;
+  final Value<String> invitedBy;
+  final Value<DateTime> expiresAt;
+  final Value<DateTime?> acceptedAt;
+  final Value<DateTime?> declinedAt;
+  final Value<DateTime> createdAt;
+  final Value<bool> isSynced;
+  final Value<String?> syncAction;
+  final Value<int> rowid;
+  const InvitationsTableCompanion({
+    this.id = const Value.absent(),
+    this.email = const Value.absent(),
+    this.workspaceId = const Value.absent(),
+    this.boardId = const Value.absent(),
+    this.role = const Value.absent(),
+    this.token = const Value.absent(),
+    this.invitedBy = const Value.absent(),
+    this.expiresAt = const Value.absent(),
+    this.acceptedAt = const Value.absent(),
+    this.declinedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.syncAction = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  InvitationsTableCompanion.insert({
+    required String id,
+    required String email,
+    this.workspaceId = const Value.absent(),
+    this.boardId = const Value.absent(),
+    required String role,
+    required String token,
+    required String invitedBy,
+    required DateTime expiresAt,
+    this.acceptedAt = const Value.absent(),
+    this.declinedAt = const Value.absent(),
+    required DateTime createdAt,
+    this.isSynced = const Value.absent(),
+    this.syncAction = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       email = Value(email),
+       role = Value(role),
+       token = Value(token),
+       invitedBy = Value(invitedBy),
+       expiresAt = Value(expiresAt),
+       createdAt = Value(createdAt);
+  static Insertable<InvitationsTableData> custom({
+    Expression<String>? id,
+    Expression<String>? email,
+    Expression<String>? workspaceId,
+    Expression<String>? boardId,
+    Expression<String>? role,
+    Expression<String>? token,
+    Expression<String>? invitedBy,
+    Expression<DateTime>? expiresAt,
+    Expression<DateTime>? acceptedAt,
+    Expression<DateTime>? declinedAt,
+    Expression<DateTime>? createdAt,
+    Expression<bool>? isSynced,
+    Expression<String>? syncAction,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (email != null) 'email': email,
+      if (workspaceId != null) 'workspace_id': workspaceId,
+      if (boardId != null) 'board_id': boardId,
+      if (role != null) 'role': role,
+      if (token != null) 'token': token,
+      if (invitedBy != null) 'invited_by': invitedBy,
+      if (expiresAt != null) 'expires_at': expiresAt,
+      if (acceptedAt != null) 'accepted_at': acceptedAt,
+      if (declinedAt != null) 'declined_at': declinedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (syncAction != null) 'sync_action': syncAction,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  InvitationsTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? email,
+    Value<String?>? workspaceId,
+    Value<String?>? boardId,
+    Value<String>? role,
+    Value<String>? token,
+    Value<String>? invitedBy,
+    Value<DateTime>? expiresAt,
+    Value<DateTime?>? acceptedAt,
+    Value<DateTime?>? declinedAt,
+    Value<DateTime>? createdAt,
+    Value<bool>? isSynced,
+    Value<String?>? syncAction,
+    Value<int>? rowid,
+  }) {
+    return InvitationsTableCompanion(
+      id: id ?? this.id,
+      email: email ?? this.email,
+      workspaceId: workspaceId ?? this.workspaceId,
+      boardId: boardId ?? this.boardId,
+      role: role ?? this.role,
+      token: token ?? this.token,
+      invitedBy: invitedBy ?? this.invitedBy,
+      expiresAt: expiresAt ?? this.expiresAt,
+      acceptedAt: acceptedAt ?? this.acceptedAt,
+      declinedAt: declinedAt ?? this.declinedAt,
+      createdAt: createdAt ?? this.createdAt,
+      isSynced: isSynced ?? this.isSynced,
+      syncAction: syncAction ?? this.syncAction,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (email.present) {
+      map['email'] = Variable<String>(email.value);
+    }
+    if (workspaceId.present) {
+      map['workspace_id'] = Variable<String>(workspaceId.value);
+    }
+    if (boardId.present) {
+      map['board_id'] = Variable<String>(boardId.value);
+    }
+    if (role.present) {
+      map['role'] = Variable<String>(role.value);
+    }
+    if (token.present) {
+      map['token'] = Variable<String>(token.value);
+    }
+    if (invitedBy.present) {
+      map['invited_by'] = Variable<String>(invitedBy.value);
+    }
+    if (expiresAt.present) {
+      map['expires_at'] = Variable<DateTime>(expiresAt.value);
+    }
+    if (acceptedAt.present) {
+      map['accepted_at'] = Variable<DateTime>(acceptedAt.value);
+    }
+    if (declinedAt.present) {
+      map['declined_at'] = Variable<DateTime>(declinedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (syncAction.present) {
+      map['sync_action'] = Variable<String>(syncAction.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('InvitationsTableCompanion(')
+          ..write('id: $id, ')
+          ..write('email: $email, ')
+          ..write('workspaceId: $workspaceId, ')
+          ..write('boardId: $boardId, ')
+          ..write('role: $role, ')
+          ..write('token: $token, ')
+          ..write('invitedBy: $invitedBy, ')
+          ..write('expiresAt: $expiresAt, ')
+          ..write('acceptedAt: $acceptedAt, ')
+          ..write('declinedAt: $declinedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('syncAction: $syncAction, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4365,6 +8204,21 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $BoardCardSettingsTableTable boardCardSettingsTable =
       $BoardCardSettingsTableTable(this);
   late final $TasksTableTable tasksTable = $TasksTableTable(this);
+  late final $UsersTableTable usersTable = $UsersTableTable(this);
+  late final $WorkspacesTableTable workspacesTable = $WorkspacesTableTable(
+    this,
+  );
+  late final $WorkspaceMembersTableTable workspaceMembersTable =
+      $WorkspaceMembersTableTable(this);
+  late final $BoardMembersTableTable boardMembersTable =
+      $BoardMembersTableTable(this);
+  late final $TaskAssigneesTableTable taskAssigneesTable =
+      $TaskAssigneesTableTable(this);
+  late final $TaskCommentsTableTable taskCommentsTable =
+      $TaskCommentsTableTable(this);
+  late final $InvitationsTableTable invitationsTable = $InvitationsTableTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4375,6 +8229,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     taskTypesTable,
     boardCardSettingsTable,
     tasksTable,
+    usersTable,
+    workspacesTable,
+    workspaceMembersTable,
+    boardMembersTable,
+    taskAssigneesTable,
+    taskCommentsTable,
+    invitationsTable,
   ];
 }
 
@@ -4382,6 +8243,7 @@ typedef $$BoardsTableTableCreateCompanionBuilder =
     BoardsTableCompanion Function({
       required String id,
       required String ownerId,
+      Value<String?> workspaceId,
       required String title,
       Value<String?> description,
       required DateTime createdAt,
@@ -4395,6 +8257,7 @@ typedef $$BoardsTableTableUpdateCompanionBuilder =
     BoardsTableCompanion Function({
       Value<String> id,
       Value<String> ownerId,
+      Value<String?> workspaceId,
       Value<String> title,
       Value<String?> description,
       Value<DateTime> createdAt,
@@ -4421,6 +8284,11 @@ class $$BoardsTableTableFilterComposer
 
   ColumnFilters<String> get ownerId => $composableBuilder(
     column: $table.ownerId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get workspaceId => $composableBuilder(
+    column: $table.workspaceId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4479,6 +8347,11 @@ class $$BoardsTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get workspaceId => $composableBuilder(
+    column: $table.workspaceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get title => $composableBuilder(
     column: $table.title,
     builder: (column) => ColumnOrderings(column),
@@ -4529,6 +8402,11 @@ class $$BoardsTableTableAnnotationComposer
 
   GeneratedColumn<String> get ownerId =>
       $composableBuilder(column: $table.ownerId, builder: (column) => column);
+
+  GeneratedColumn<String> get workspaceId => $composableBuilder(
+    column: $table.workspaceId,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get title =>
       $composableBuilder(column: $table.title, builder: (column) => column);
@@ -4589,6 +8467,7 @@ class $$BoardsTableTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> ownerId = const Value.absent(),
+                Value<String?> workspaceId = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String?> description = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -4600,6 +8479,7 @@ class $$BoardsTableTableTableManager
               }) => BoardsTableCompanion(
                 id: id,
                 ownerId: ownerId,
+                workspaceId: workspaceId,
                 title: title,
                 description: description,
                 createdAt: createdAt,
@@ -4613,6 +8493,7 @@ class $$BoardsTableTableTableManager
               ({
                 required String id,
                 required String ownerId,
+                Value<String?> workspaceId = const Value.absent(),
                 required String title,
                 Value<String?> description = const Value.absent(),
                 required DateTime createdAt,
@@ -4624,6 +8505,7 @@ class $$BoardsTableTableTableManager
               }) => BoardsTableCompanion.insert(
                 id: id,
                 ownerId: ownerId,
+                workspaceId: workspaceId,
                 title: title,
                 description: description,
                 createdAt: createdAt,
@@ -6390,6 +10272,1968 @@ typedef $$TasksTableTableProcessedTableManager =
       TasksTableData,
       PrefetchHooks Function()
     >;
+typedef $$UsersTableTableCreateCompanionBuilder =
+    UsersTableCompanion Function({
+      required String id,
+      required String email,
+      required String fullName,
+      Value<String?> position,
+      Value<String?> avatarUrl,
+      Value<String?> passwordHash,
+      Value<String?> passwordSalt,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$UsersTableTableUpdateCompanionBuilder =
+    UsersTableCompanion Function({
+      Value<String> id,
+      Value<String> email,
+      Value<String> fullName,
+      Value<String?> position,
+      Value<String?> avatarUrl,
+      Value<String?> passwordHash,
+      Value<String?> passwordSalt,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$UsersTableTableFilterComposer
+    extends Composer<_$AppDatabase, $UsersTableTable> {
+  $$UsersTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fullName => $composableBuilder(
+    column: $table.fullName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get avatarUrl => $composableBuilder(
+    column: $table.avatarUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get passwordHash => $composableBuilder(
+    column: $table.passwordHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get passwordSalt => $composableBuilder(
+    column: $table.passwordSalt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$UsersTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $UsersTableTable> {
+  $$UsersTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fullName => $composableBuilder(
+    column: $table.fullName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get avatarUrl => $composableBuilder(
+    column: $table.avatarUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get passwordHash => $composableBuilder(
+    column: $table.passwordHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get passwordSalt => $composableBuilder(
+    column: $table.passwordSalt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$UsersTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $UsersTableTable> {
+  $$UsersTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get email =>
+      $composableBuilder(column: $table.email, builder: (column) => column);
+
+  GeneratedColumn<String> get fullName =>
+      $composableBuilder(column: $table.fullName, builder: (column) => column);
+
+  GeneratedColumn<String> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<String> get avatarUrl =>
+      $composableBuilder(column: $table.avatarUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get passwordHash => $composableBuilder(
+    column: $table.passwordHash,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get passwordSalt => $composableBuilder(
+    column: $table.passwordSalt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$UsersTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $UsersTableTable,
+          UsersTableData,
+          $$UsersTableTableFilterComposer,
+          $$UsersTableTableOrderingComposer,
+          $$UsersTableTableAnnotationComposer,
+          $$UsersTableTableCreateCompanionBuilder,
+          $$UsersTableTableUpdateCompanionBuilder,
+          (
+            UsersTableData,
+            BaseReferences<_$AppDatabase, $UsersTableTable, UsersTableData>,
+          ),
+          UsersTableData,
+          PrefetchHooks Function()
+        > {
+  $$UsersTableTableTableManager(_$AppDatabase db, $UsersTableTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UsersTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UsersTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$UsersTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> email = const Value.absent(),
+                Value<String> fullName = const Value.absent(),
+                Value<String?> position = const Value.absent(),
+                Value<String?> avatarUrl = const Value.absent(),
+                Value<String?> passwordHash = const Value.absent(),
+                Value<String?> passwordSalt = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => UsersTableCompanion(
+                id: id,
+                email: email,
+                fullName: fullName,
+                position: position,
+                avatarUrl: avatarUrl,
+                passwordHash: passwordHash,
+                passwordSalt: passwordSalt,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String email,
+                required String fullName,
+                Value<String?> position = const Value.absent(),
+                Value<String?> avatarUrl = const Value.absent(),
+                Value<String?> passwordHash = const Value.absent(),
+                Value<String?> passwordSalt = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => UsersTableCompanion.insert(
+                id: id,
+                email: email,
+                fullName: fullName,
+                position: position,
+                avatarUrl: avatarUrl,
+                passwordHash: passwordHash,
+                passwordSalt: passwordSalt,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$UsersTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $UsersTableTable,
+      UsersTableData,
+      $$UsersTableTableFilterComposer,
+      $$UsersTableTableOrderingComposer,
+      $$UsersTableTableAnnotationComposer,
+      $$UsersTableTableCreateCompanionBuilder,
+      $$UsersTableTableUpdateCompanionBuilder,
+      (
+        UsersTableData,
+        BaseReferences<_$AppDatabase, $UsersTableTable, UsersTableData>,
+      ),
+      UsersTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$WorkspacesTableTableCreateCompanionBuilder =
+    WorkspacesTableCompanion Function({
+      required String id,
+      required String name,
+      required String ownerId,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<bool> isSynced,
+      Value<String?> syncAction,
+      Value<int> rowid,
+    });
+typedef $$WorkspacesTableTableUpdateCompanionBuilder =
+    WorkspacesTableCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String> ownerId,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> isSynced,
+      Value<String?> syncAction,
+      Value<int> rowid,
+    });
+
+class $$WorkspacesTableTableFilterComposer
+    extends Composer<_$AppDatabase, $WorkspacesTableTable> {
+  $$WorkspacesTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncAction => $composableBuilder(
+    column: $table.syncAction,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$WorkspacesTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $WorkspacesTableTable> {
+  $$WorkspacesTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncAction => $composableBuilder(
+    column: $table.syncAction,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$WorkspacesTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WorkspacesTableTable> {
+  $$WorkspacesTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get ownerId =>
+      $composableBuilder(column: $table.ownerId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<String> get syncAction => $composableBuilder(
+    column: $table.syncAction,
+    builder: (column) => column,
+  );
+}
+
+class $$WorkspacesTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WorkspacesTableTable,
+          WorkspacesTableData,
+          $$WorkspacesTableTableFilterComposer,
+          $$WorkspacesTableTableOrderingComposer,
+          $$WorkspacesTableTableAnnotationComposer,
+          $$WorkspacesTableTableCreateCompanionBuilder,
+          $$WorkspacesTableTableUpdateCompanionBuilder,
+          (
+            WorkspacesTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $WorkspacesTableTable,
+              WorkspacesTableData
+            >,
+          ),
+          WorkspacesTableData,
+          PrefetchHooks Function()
+        > {
+  $$WorkspacesTableTableTableManager(
+    _$AppDatabase db,
+    $WorkspacesTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WorkspacesTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WorkspacesTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WorkspacesTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> ownerId = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+                Value<String?> syncAction = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => WorkspacesTableCompanion(
+                id: id,
+                name: name,
+                ownerId: ownerId,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                isSynced: isSynced,
+                syncAction: syncAction,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                required String ownerId,
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<bool> isSynced = const Value.absent(),
+                Value<String?> syncAction = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => WorkspacesTableCompanion.insert(
+                id: id,
+                name: name,
+                ownerId: ownerId,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                isSynced: isSynced,
+                syncAction: syncAction,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$WorkspacesTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WorkspacesTableTable,
+      WorkspacesTableData,
+      $$WorkspacesTableTableFilterComposer,
+      $$WorkspacesTableTableOrderingComposer,
+      $$WorkspacesTableTableAnnotationComposer,
+      $$WorkspacesTableTableCreateCompanionBuilder,
+      $$WorkspacesTableTableUpdateCompanionBuilder,
+      (
+        WorkspacesTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $WorkspacesTableTable,
+          WorkspacesTableData
+        >,
+      ),
+      WorkspacesTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$WorkspaceMembersTableTableCreateCompanionBuilder =
+    WorkspaceMembersTableCompanion Function({
+      required String id,
+      required String workspaceId,
+      required String userId,
+      required String role,
+      required DateTime joinedAt,
+      Value<bool> isSynced,
+      Value<String?> syncAction,
+      Value<int> rowid,
+    });
+typedef $$WorkspaceMembersTableTableUpdateCompanionBuilder =
+    WorkspaceMembersTableCompanion Function({
+      Value<String> id,
+      Value<String> workspaceId,
+      Value<String> userId,
+      Value<String> role,
+      Value<DateTime> joinedAt,
+      Value<bool> isSynced,
+      Value<String?> syncAction,
+      Value<int> rowid,
+    });
+
+class $$WorkspaceMembersTableTableFilterComposer
+    extends Composer<_$AppDatabase, $WorkspaceMembersTableTable> {
+  $$WorkspaceMembersTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get workspaceId => $composableBuilder(
+    column: $table.workspaceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get joinedAt => $composableBuilder(
+    column: $table.joinedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncAction => $composableBuilder(
+    column: $table.syncAction,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$WorkspaceMembersTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $WorkspaceMembersTableTable> {
+  $$WorkspaceMembersTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get workspaceId => $composableBuilder(
+    column: $table.workspaceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get joinedAt => $composableBuilder(
+    column: $table.joinedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncAction => $composableBuilder(
+    column: $table.syncAction,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$WorkspaceMembersTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WorkspaceMembersTableTable> {
+  $$WorkspaceMembersTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get workspaceId => $composableBuilder(
+    column: $table.workspaceId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get role =>
+      $composableBuilder(column: $table.role, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get joinedAt =>
+      $composableBuilder(column: $table.joinedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<String> get syncAction => $composableBuilder(
+    column: $table.syncAction,
+    builder: (column) => column,
+  );
+}
+
+class $$WorkspaceMembersTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WorkspaceMembersTableTable,
+          WorkspaceMembersTableData,
+          $$WorkspaceMembersTableTableFilterComposer,
+          $$WorkspaceMembersTableTableOrderingComposer,
+          $$WorkspaceMembersTableTableAnnotationComposer,
+          $$WorkspaceMembersTableTableCreateCompanionBuilder,
+          $$WorkspaceMembersTableTableUpdateCompanionBuilder,
+          (
+            WorkspaceMembersTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $WorkspaceMembersTableTable,
+              WorkspaceMembersTableData
+            >,
+          ),
+          WorkspaceMembersTableData,
+          PrefetchHooks Function()
+        > {
+  $$WorkspaceMembersTableTableTableManager(
+    _$AppDatabase db,
+    $WorkspaceMembersTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WorkspaceMembersTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$WorkspaceMembersTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$WorkspaceMembersTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> workspaceId = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> role = const Value.absent(),
+                Value<DateTime> joinedAt = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+                Value<String?> syncAction = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => WorkspaceMembersTableCompanion(
+                id: id,
+                workspaceId: workspaceId,
+                userId: userId,
+                role: role,
+                joinedAt: joinedAt,
+                isSynced: isSynced,
+                syncAction: syncAction,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String workspaceId,
+                required String userId,
+                required String role,
+                required DateTime joinedAt,
+                Value<bool> isSynced = const Value.absent(),
+                Value<String?> syncAction = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => WorkspaceMembersTableCompanion.insert(
+                id: id,
+                workspaceId: workspaceId,
+                userId: userId,
+                role: role,
+                joinedAt: joinedAt,
+                isSynced: isSynced,
+                syncAction: syncAction,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$WorkspaceMembersTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WorkspaceMembersTableTable,
+      WorkspaceMembersTableData,
+      $$WorkspaceMembersTableTableFilterComposer,
+      $$WorkspaceMembersTableTableOrderingComposer,
+      $$WorkspaceMembersTableTableAnnotationComposer,
+      $$WorkspaceMembersTableTableCreateCompanionBuilder,
+      $$WorkspaceMembersTableTableUpdateCompanionBuilder,
+      (
+        WorkspaceMembersTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $WorkspaceMembersTableTable,
+          WorkspaceMembersTableData
+        >,
+      ),
+      WorkspaceMembersTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$BoardMembersTableTableCreateCompanionBuilder =
+    BoardMembersTableCompanion Function({
+      required String id,
+      required String boardId,
+      required String userId,
+      required String role,
+      required DateTime joinedAt,
+      Value<bool> isSynced,
+      Value<String?> syncAction,
+      Value<int> rowid,
+    });
+typedef $$BoardMembersTableTableUpdateCompanionBuilder =
+    BoardMembersTableCompanion Function({
+      Value<String> id,
+      Value<String> boardId,
+      Value<String> userId,
+      Value<String> role,
+      Value<DateTime> joinedAt,
+      Value<bool> isSynced,
+      Value<String?> syncAction,
+      Value<int> rowid,
+    });
+
+class $$BoardMembersTableTableFilterComposer
+    extends Composer<_$AppDatabase, $BoardMembersTableTable> {
+  $$BoardMembersTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get boardId => $composableBuilder(
+    column: $table.boardId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get joinedAt => $composableBuilder(
+    column: $table.joinedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncAction => $composableBuilder(
+    column: $table.syncAction,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BoardMembersTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $BoardMembersTableTable> {
+  $$BoardMembersTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get boardId => $composableBuilder(
+    column: $table.boardId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get joinedAt => $composableBuilder(
+    column: $table.joinedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncAction => $composableBuilder(
+    column: $table.syncAction,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BoardMembersTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BoardMembersTableTable> {
+  $$BoardMembersTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get boardId =>
+      $composableBuilder(column: $table.boardId, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get role =>
+      $composableBuilder(column: $table.role, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get joinedAt =>
+      $composableBuilder(column: $table.joinedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<String> get syncAction => $composableBuilder(
+    column: $table.syncAction,
+    builder: (column) => column,
+  );
+}
+
+class $$BoardMembersTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BoardMembersTableTable,
+          BoardMembersTableData,
+          $$BoardMembersTableTableFilterComposer,
+          $$BoardMembersTableTableOrderingComposer,
+          $$BoardMembersTableTableAnnotationComposer,
+          $$BoardMembersTableTableCreateCompanionBuilder,
+          $$BoardMembersTableTableUpdateCompanionBuilder,
+          (
+            BoardMembersTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $BoardMembersTableTable,
+              BoardMembersTableData
+            >,
+          ),
+          BoardMembersTableData,
+          PrefetchHooks Function()
+        > {
+  $$BoardMembersTableTableTableManager(
+    _$AppDatabase db,
+    $BoardMembersTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BoardMembersTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BoardMembersTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BoardMembersTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> boardId = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> role = const Value.absent(),
+                Value<DateTime> joinedAt = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+                Value<String?> syncAction = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BoardMembersTableCompanion(
+                id: id,
+                boardId: boardId,
+                userId: userId,
+                role: role,
+                joinedAt: joinedAt,
+                isSynced: isSynced,
+                syncAction: syncAction,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String boardId,
+                required String userId,
+                required String role,
+                required DateTime joinedAt,
+                Value<bool> isSynced = const Value.absent(),
+                Value<String?> syncAction = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BoardMembersTableCompanion.insert(
+                id: id,
+                boardId: boardId,
+                userId: userId,
+                role: role,
+                joinedAt: joinedAt,
+                isSynced: isSynced,
+                syncAction: syncAction,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BoardMembersTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BoardMembersTableTable,
+      BoardMembersTableData,
+      $$BoardMembersTableTableFilterComposer,
+      $$BoardMembersTableTableOrderingComposer,
+      $$BoardMembersTableTableAnnotationComposer,
+      $$BoardMembersTableTableCreateCompanionBuilder,
+      $$BoardMembersTableTableUpdateCompanionBuilder,
+      (
+        BoardMembersTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $BoardMembersTableTable,
+          BoardMembersTableData
+        >,
+      ),
+      BoardMembersTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$TaskAssigneesTableTableCreateCompanionBuilder =
+    TaskAssigneesTableCompanion Function({
+      required String id,
+      required String taskId,
+      required String userId,
+      required String assignedBy,
+      required DateTime assignedAt,
+      Value<bool> isSynced,
+      Value<String?> syncAction,
+      Value<int> rowid,
+    });
+typedef $$TaskAssigneesTableTableUpdateCompanionBuilder =
+    TaskAssigneesTableCompanion Function({
+      Value<String> id,
+      Value<String> taskId,
+      Value<String> userId,
+      Value<String> assignedBy,
+      Value<DateTime> assignedAt,
+      Value<bool> isSynced,
+      Value<String?> syncAction,
+      Value<int> rowid,
+    });
+
+class $$TaskAssigneesTableTableFilterComposer
+    extends Composer<_$AppDatabase, $TaskAssigneesTableTable> {
+  $$TaskAssigneesTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get taskId => $composableBuilder(
+    column: $table.taskId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get assignedBy => $composableBuilder(
+    column: $table.assignedBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get assignedAt => $composableBuilder(
+    column: $table.assignedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncAction => $composableBuilder(
+    column: $table.syncAction,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TaskAssigneesTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $TaskAssigneesTableTable> {
+  $$TaskAssigneesTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get taskId => $composableBuilder(
+    column: $table.taskId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get assignedBy => $composableBuilder(
+    column: $table.assignedBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get assignedAt => $composableBuilder(
+    column: $table.assignedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncAction => $composableBuilder(
+    column: $table.syncAction,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TaskAssigneesTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TaskAssigneesTableTable> {
+  $$TaskAssigneesTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get taskId =>
+      $composableBuilder(column: $table.taskId, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get assignedBy => $composableBuilder(
+    column: $table.assignedBy,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get assignedAt => $composableBuilder(
+    column: $table.assignedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<String> get syncAction => $composableBuilder(
+    column: $table.syncAction,
+    builder: (column) => column,
+  );
+}
+
+class $$TaskAssigneesTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TaskAssigneesTableTable,
+          TaskAssigneesTableData,
+          $$TaskAssigneesTableTableFilterComposer,
+          $$TaskAssigneesTableTableOrderingComposer,
+          $$TaskAssigneesTableTableAnnotationComposer,
+          $$TaskAssigneesTableTableCreateCompanionBuilder,
+          $$TaskAssigneesTableTableUpdateCompanionBuilder,
+          (
+            TaskAssigneesTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $TaskAssigneesTableTable,
+              TaskAssigneesTableData
+            >,
+          ),
+          TaskAssigneesTableData,
+          PrefetchHooks Function()
+        > {
+  $$TaskAssigneesTableTableTableManager(
+    _$AppDatabase db,
+    $TaskAssigneesTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TaskAssigneesTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TaskAssigneesTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TaskAssigneesTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> taskId = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> assignedBy = const Value.absent(),
+                Value<DateTime> assignedAt = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+                Value<String?> syncAction = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TaskAssigneesTableCompanion(
+                id: id,
+                taskId: taskId,
+                userId: userId,
+                assignedBy: assignedBy,
+                assignedAt: assignedAt,
+                isSynced: isSynced,
+                syncAction: syncAction,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String taskId,
+                required String userId,
+                required String assignedBy,
+                required DateTime assignedAt,
+                Value<bool> isSynced = const Value.absent(),
+                Value<String?> syncAction = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TaskAssigneesTableCompanion.insert(
+                id: id,
+                taskId: taskId,
+                userId: userId,
+                assignedBy: assignedBy,
+                assignedAt: assignedAt,
+                isSynced: isSynced,
+                syncAction: syncAction,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TaskAssigneesTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TaskAssigneesTableTable,
+      TaskAssigneesTableData,
+      $$TaskAssigneesTableTableFilterComposer,
+      $$TaskAssigneesTableTableOrderingComposer,
+      $$TaskAssigneesTableTableAnnotationComposer,
+      $$TaskAssigneesTableTableCreateCompanionBuilder,
+      $$TaskAssigneesTableTableUpdateCompanionBuilder,
+      (
+        TaskAssigneesTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $TaskAssigneesTableTable,
+          TaskAssigneesTableData
+        >,
+      ),
+      TaskAssigneesTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$TaskCommentsTableTableCreateCompanionBuilder =
+    TaskCommentsTableCompanion Function({
+      required String id,
+      required String taskId,
+      required String authorId,
+      required String content,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> isSynced,
+      Value<String?> syncAction,
+      Value<int> rowid,
+    });
+typedef $$TaskCommentsTableTableUpdateCompanionBuilder =
+    TaskCommentsTableCompanion Function({
+      Value<String> id,
+      Value<String> taskId,
+      Value<String> authorId,
+      Value<String> content,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> isSynced,
+      Value<String?> syncAction,
+      Value<int> rowid,
+    });
+
+class $$TaskCommentsTableTableFilterComposer
+    extends Composer<_$AppDatabase, $TaskCommentsTableTable> {
+  $$TaskCommentsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get taskId => $composableBuilder(
+    column: $table.taskId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get authorId => $composableBuilder(
+    column: $table.authorId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncAction => $composableBuilder(
+    column: $table.syncAction,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TaskCommentsTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $TaskCommentsTableTable> {
+  $$TaskCommentsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get taskId => $composableBuilder(
+    column: $table.taskId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get authorId => $composableBuilder(
+    column: $table.authorId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncAction => $composableBuilder(
+    column: $table.syncAction,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TaskCommentsTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TaskCommentsTableTable> {
+  $$TaskCommentsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get taskId =>
+      $composableBuilder(column: $table.taskId, builder: (column) => column);
+
+  GeneratedColumn<String> get authorId =>
+      $composableBuilder(column: $table.authorId, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<String> get syncAction => $composableBuilder(
+    column: $table.syncAction,
+    builder: (column) => column,
+  );
+}
+
+class $$TaskCommentsTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TaskCommentsTableTable,
+          TaskCommentsTableData,
+          $$TaskCommentsTableTableFilterComposer,
+          $$TaskCommentsTableTableOrderingComposer,
+          $$TaskCommentsTableTableAnnotationComposer,
+          $$TaskCommentsTableTableCreateCompanionBuilder,
+          $$TaskCommentsTableTableUpdateCompanionBuilder,
+          (
+            TaskCommentsTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $TaskCommentsTableTable,
+              TaskCommentsTableData
+            >,
+          ),
+          TaskCommentsTableData,
+          PrefetchHooks Function()
+        > {
+  $$TaskCommentsTableTableTableManager(
+    _$AppDatabase db,
+    $TaskCommentsTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TaskCommentsTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TaskCommentsTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TaskCommentsTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> taskId = const Value.absent(),
+                Value<String> authorId = const Value.absent(),
+                Value<String> content = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+                Value<String?> syncAction = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TaskCommentsTableCompanion(
+                id: id,
+                taskId: taskId,
+                authorId: authorId,
+                content: content,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                isSynced: isSynced,
+                syncAction: syncAction,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String taskId,
+                required String authorId,
+                required String content,
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+                Value<String?> syncAction = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TaskCommentsTableCompanion.insert(
+                id: id,
+                taskId: taskId,
+                authorId: authorId,
+                content: content,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                isSynced: isSynced,
+                syncAction: syncAction,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TaskCommentsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TaskCommentsTableTable,
+      TaskCommentsTableData,
+      $$TaskCommentsTableTableFilterComposer,
+      $$TaskCommentsTableTableOrderingComposer,
+      $$TaskCommentsTableTableAnnotationComposer,
+      $$TaskCommentsTableTableCreateCompanionBuilder,
+      $$TaskCommentsTableTableUpdateCompanionBuilder,
+      (
+        TaskCommentsTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $TaskCommentsTableTable,
+          TaskCommentsTableData
+        >,
+      ),
+      TaskCommentsTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$InvitationsTableTableCreateCompanionBuilder =
+    InvitationsTableCompanion Function({
+      required String id,
+      required String email,
+      Value<String?> workspaceId,
+      Value<String?> boardId,
+      required String role,
+      required String token,
+      required String invitedBy,
+      required DateTime expiresAt,
+      Value<DateTime?> acceptedAt,
+      Value<DateTime?> declinedAt,
+      required DateTime createdAt,
+      Value<bool> isSynced,
+      Value<String?> syncAction,
+      Value<int> rowid,
+    });
+typedef $$InvitationsTableTableUpdateCompanionBuilder =
+    InvitationsTableCompanion Function({
+      Value<String> id,
+      Value<String> email,
+      Value<String?> workspaceId,
+      Value<String?> boardId,
+      Value<String> role,
+      Value<String> token,
+      Value<String> invitedBy,
+      Value<DateTime> expiresAt,
+      Value<DateTime?> acceptedAt,
+      Value<DateTime?> declinedAt,
+      Value<DateTime> createdAt,
+      Value<bool> isSynced,
+      Value<String?> syncAction,
+      Value<int> rowid,
+    });
+
+class $$InvitationsTableTableFilterComposer
+    extends Composer<_$AppDatabase, $InvitationsTableTable> {
+  $$InvitationsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get workspaceId => $composableBuilder(
+    column: $table.workspaceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get boardId => $composableBuilder(
+    column: $table.boardId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get token => $composableBuilder(
+    column: $table.token,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get invitedBy => $composableBuilder(
+    column: $table.invitedBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get expiresAt => $composableBuilder(
+    column: $table.expiresAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get acceptedAt => $composableBuilder(
+    column: $table.acceptedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get declinedAt => $composableBuilder(
+    column: $table.declinedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncAction => $composableBuilder(
+    column: $table.syncAction,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$InvitationsTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $InvitationsTableTable> {
+  $$InvitationsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get workspaceId => $composableBuilder(
+    column: $table.workspaceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get boardId => $composableBuilder(
+    column: $table.boardId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get token => $composableBuilder(
+    column: $table.token,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get invitedBy => $composableBuilder(
+    column: $table.invitedBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get expiresAt => $composableBuilder(
+    column: $table.expiresAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get acceptedAt => $composableBuilder(
+    column: $table.acceptedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get declinedAt => $composableBuilder(
+    column: $table.declinedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncAction => $composableBuilder(
+    column: $table.syncAction,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$InvitationsTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $InvitationsTableTable> {
+  $$InvitationsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get email =>
+      $composableBuilder(column: $table.email, builder: (column) => column);
+
+  GeneratedColumn<String> get workspaceId => $composableBuilder(
+    column: $table.workspaceId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get boardId =>
+      $composableBuilder(column: $table.boardId, builder: (column) => column);
+
+  GeneratedColumn<String> get role =>
+      $composableBuilder(column: $table.role, builder: (column) => column);
+
+  GeneratedColumn<String> get token =>
+      $composableBuilder(column: $table.token, builder: (column) => column);
+
+  GeneratedColumn<String> get invitedBy =>
+      $composableBuilder(column: $table.invitedBy, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get expiresAt =>
+      $composableBuilder(column: $table.expiresAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get acceptedAt => $composableBuilder(
+    column: $table.acceptedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get declinedAt => $composableBuilder(
+    column: $table.declinedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<String> get syncAction => $composableBuilder(
+    column: $table.syncAction,
+    builder: (column) => column,
+  );
+}
+
+class $$InvitationsTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $InvitationsTableTable,
+          InvitationsTableData,
+          $$InvitationsTableTableFilterComposer,
+          $$InvitationsTableTableOrderingComposer,
+          $$InvitationsTableTableAnnotationComposer,
+          $$InvitationsTableTableCreateCompanionBuilder,
+          $$InvitationsTableTableUpdateCompanionBuilder,
+          (
+            InvitationsTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $InvitationsTableTable,
+              InvitationsTableData
+            >,
+          ),
+          InvitationsTableData,
+          PrefetchHooks Function()
+        > {
+  $$InvitationsTableTableTableManager(
+    _$AppDatabase db,
+    $InvitationsTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$InvitationsTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$InvitationsTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$InvitationsTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> email = const Value.absent(),
+                Value<String?> workspaceId = const Value.absent(),
+                Value<String?> boardId = const Value.absent(),
+                Value<String> role = const Value.absent(),
+                Value<String> token = const Value.absent(),
+                Value<String> invitedBy = const Value.absent(),
+                Value<DateTime> expiresAt = const Value.absent(),
+                Value<DateTime?> acceptedAt = const Value.absent(),
+                Value<DateTime?> declinedAt = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+                Value<String?> syncAction = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => InvitationsTableCompanion(
+                id: id,
+                email: email,
+                workspaceId: workspaceId,
+                boardId: boardId,
+                role: role,
+                token: token,
+                invitedBy: invitedBy,
+                expiresAt: expiresAt,
+                acceptedAt: acceptedAt,
+                declinedAt: declinedAt,
+                createdAt: createdAt,
+                isSynced: isSynced,
+                syncAction: syncAction,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String email,
+                Value<String?> workspaceId = const Value.absent(),
+                Value<String?> boardId = const Value.absent(),
+                required String role,
+                required String token,
+                required String invitedBy,
+                required DateTime expiresAt,
+                Value<DateTime?> acceptedAt = const Value.absent(),
+                Value<DateTime?> declinedAt = const Value.absent(),
+                required DateTime createdAt,
+                Value<bool> isSynced = const Value.absent(),
+                Value<String?> syncAction = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => InvitationsTableCompanion.insert(
+                id: id,
+                email: email,
+                workspaceId: workspaceId,
+                boardId: boardId,
+                role: role,
+                token: token,
+                invitedBy: invitedBy,
+                expiresAt: expiresAt,
+                acceptedAt: acceptedAt,
+                declinedAt: declinedAt,
+                createdAt: createdAt,
+                isSynced: isSynced,
+                syncAction: syncAction,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$InvitationsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $InvitationsTableTable,
+      InvitationsTableData,
+      $$InvitationsTableTableFilterComposer,
+      $$InvitationsTableTableOrderingComposer,
+      $$InvitationsTableTableAnnotationComposer,
+      $$InvitationsTableTableCreateCompanionBuilder,
+      $$InvitationsTableTableUpdateCompanionBuilder,
+      (
+        InvitationsTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $InvitationsTableTable,
+          InvitationsTableData
+        >,
+      ),
+      InvitationsTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6407,4 +12251,18 @@ class $AppDatabaseManager {
       );
   $$TasksTableTableTableManager get tasksTable =>
       $$TasksTableTableTableManager(_db, _db.tasksTable);
+  $$UsersTableTableTableManager get usersTable =>
+      $$UsersTableTableTableManager(_db, _db.usersTable);
+  $$WorkspacesTableTableTableManager get workspacesTable =>
+      $$WorkspacesTableTableTableManager(_db, _db.workspacesTable);
+  $$WorkspaceMembersTableTableTableManager get workspaceMembersTable =>
+      $$WorkspaceMembersTableTableTableManager(_db, _db.workspaceMembersTable);
+  $$BoardMembersTableTableTableManager get boardMembersTable =>
+      $$BoardMembersTableTableTableManager(_db, _db.boardMembersTable);
+  $$TaskAssigneesTableTableTableManager get taskAssigneesTable =>
+      $$TaskAssigneesTableTableTableManager(_db, _db.taskAssigneesTable);
+  $$TaskCommentsTableTableTableManager get taskCommentsTable =>
+      $$TaskCommentsTableTableTableManager(_db, _db.taskCommentsTable);
+  $$InvitationsTableTableTableManager get invitationsTable =>
+      $$InvitationsTableTableTableManager(_db, _db.invitationsTable);
 }

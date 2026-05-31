@@ -10,6 +10,8 @@ import '../../../../../../core/widgets/app_card.dart';
 import '../../../../../../core/widgets/app_context_menu.dart';
 import '../../../../board_settings/domain/entities/board_card_settings.dart';
 import '../../../../task_types/domain/entities/task_type_entity.dart';
+import '../../../../task_assignees/domain/entities/task_assignee_entity.dart';
+import '../../../../task_assignees/presentation/providers/task_assignee_providers.dart';
 import '../../../domain/entities/task_entity.dart';
 import '../../controllers/task_card_controller.dart';
 import 'subtask_list_preview.dart';
@@ -173,7 +175,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
                                 visualDensity: VisualDensity.compact,
                               ),
                           if (widget.settings.showAssignee)
-                            TaskAssigneeAvatar(name: widget.task.assigneeName),
+                            ..._assigneeAvatars(),
                         ],
                       ),
                       if (widget.settings.showSubtaskProgress &&
@@ -239,6 +241,21 @@ class _TaskCardState extends ConsumerState<TaskCard> {
 
   void _showActions() {
     _showContextMenu(Offset.zero);
+  }
+
+  List<Widget> _assigneeAvatars() {
+    final assignees = ref.watch(taskAssigneesProvider(widget.task.id));
+    final values = assignees.maybeWhen(
+      data: (value) => value,
+      orElse: () => const <TaskAssigneeEntity>[],
+    );
+    if (values.isEmpty) {
+      return [TaskAssigneeAvatar(name: widget.task.assigneeName)];
+    }
+    return [
+      for (final assignee in values.take(4))
+        TaskAssigneeAvatar(name: assignee.userId),
+    ];
   }
 }
 

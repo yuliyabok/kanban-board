@@ -10,6 +10,7 @@ abstract class BoardEntity with _$BoardEntity {
     required String title,
     required DateTime createdAt,
     required DateTime updatedAt,
+    String? workspaceId,
     String? description,
     DateTime? deletedAt,
     @Default(false) bool isSynced,

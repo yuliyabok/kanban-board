@@ -26,6 +26,10 @@ final class OfflineFirstBoardRepository implements BoardRepository {
   Stream<List<BoardEntity>> watchAll() => _localDataSource.watchAll();
 
   @override
+  Stream<List<BoardEntity>> watchVisibleToUser(String userId) =>
+      _localDataSource.watchVisibleToUser(userId);
+
+  @override
   Future<result.Result<BoardEntity>> create(BoardEntity board) async {
     if (board.title.trim().isEmpty) {
       return const result.Error<BoardEntity>(
@@ -37,6 +41,7 @@ final class OfflineFirstBoardRepository implements BoardRepository {
     final newBoard = BoardEntity(
       id: _uuid.v7(),
       ownerId: board.ownerId,
+      workspaceId: board.workspaceId,
       title: board.title.trim(),
       description: board.description?.trim(),
       createdAt: now,
@@ -45,6 +50,7 @@ final class OfflineFirstBoardRepository implements BoardRepository {
 
     try {
       await _localDataSource.savePending(newBoard, 'create');
+      await _localDataSource.addOwnerMembership(newBoard);
       unawaited(_pushCreate(newBoard));
       return result.Success(newBoard);
     } on Exception catch (error) {
@@ -74,6 +80,7 @@ final class OfflineFirstBoardRepository implements BoardRepository {
     final updatedBoard = BoardEntity(
       id: board.id,
       ownerId: board.ownerId,
+      workspaceId: board.workspaceId,
       title: board.title.trim(),
       description: board.description?.trim(),
       createdAt: board.createdAt,

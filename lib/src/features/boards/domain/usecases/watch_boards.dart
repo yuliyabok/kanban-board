@@ -7,4 +7,7 @@ final class WatchBoards {
   final BoardRepository _repository;
 
   Stream<List<BoardEntity>> call() => _repository.watchAll();
+
+  Stream<List<BoardEntity>> visibleToUser(String userId) =>
+      _repository.watchVisibleToUser(userId);
 }

@@ -1,10 +1,15 @@
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/database/app_database.dart';
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/storage/secure_storage.dart';
+import '../../../users/data/datasources/user_local_datasource.dart';
+import '../../../users/data/mappers/user_mapper.dart';
+import '../../../users/domain/entities/user_entity.dart';
 import '../dto/auth_credentials_dto.dart';
 import '../dto/registration_dto.dart';
 import '../dto/auth_session_dto.dart';
@@ -63,43 +68,61 @@ final class ApiAuthRemoteDataSource implements AuthRemoteDataSource {
 final class LocalAuthRemoteDataSource implements AuthRemoteDataSource {
   const LocalAuthRemoteDataSource({
     required SecureStorage storage,
+    required UserLocalDataSource userLocalDataSource,
     required Uuid uuid,
   }) : _storage = storage,
+       _userLocalDataSource = userLocalDataSource,
        _uuid = uuid;
 
-  static const _usersKey = 'auth.local.users.v1';
   static const _refreshTokensKey = 'auth.local.refresh_tokens.v1';
 
   final SecureStorage _storage;
+  final UserLocalDataSource _userLocalDataSource;
   final Uuid _uuid;
 
   @override
   Future<AuthSessionDto> register(RegistrationDto data) async {
     final email = data.email.trim().toLowerCase();
-    final users = await _readUsers();
-    if (users.containsKey(email)) {
+    final existing = await _userLocalDataSource.getByEmail(email);
+    if (existing != null) {
       throw const ValidationException(
         'Пользователь с такой почтой уже существует',
       );
     }
 
-    final user = <String, Object?>{
-      'userId': _uuid.v7(),
-      'email': email,
-      'password': data.password,
-      'displayName': data.displayName?.trim(),
-    };
-    users[email] = user;
-    await _writeUsers(users);
+    final now = DateTime.now().toUtc();
+    final salt = _uuid.v7();
+    final user = UserEntity(
+      id: _uuid.v7(),
+      email: email,
+      fullName: _displayName(data, email),
+      position: null,
+      createdAt: now,
+      updatedAt: now,
+    );
+    await _userLocalDataSource.upsert(
+      user.toCompanion(
+        passwordHash: _hashPassword(data.password, salt),
+        passwordSalt: salt,
+      ),
+    );
 
-    return _createSession(user);
+    final stored = await _userLocalDataSource.getByEmail(email);
+    if (stored == null) {
+      throw const LocalStorageException('Пользователь не сохранен');
+    }
+    return _createSession(stored);
   }
 
   @override
   Future<AuthSessionDto> signIn(AuthCredentialsDto credentials) async {
     final email = credentials.email.trim().toLowerCase();
-    final user = (await _readUsers())[email];
-    if (user == null || user['password'] != credentials.password) {
+    final user = await _userLocalDataSource.getByEmail(email);
+    if (user == null ||
+        user.passwordHash == null ||
+        user.passwordSalt == null ||
+        user.passwordHash !=
+            _hashPassword(credentials.password, user.passwordSalt!)) {
       throw const ValidationException('Неверная почта или пароль');
     }
 
@@ -114,8 +137,7 @@ final class LocalAuthRemoteDataSource implements AuthRemoteDataSource {
       throw const ValidationException('Сессия не найдена');
     }
 
-    final users = await _readUsers();
-    final user = users[email];
+    final user = await _userLocalDataSource.getByEmail(email);
     if (user == null) {
       throw const ValidationException('Пользователь не найден');
     }
@@ -128,29 +150,6 @@ final class LocalAuthRemoteDataSource implements AuthRemoteDataSource {
     final refreshTokens = await _readRefreshTokens();
     refreshTokens.remove(refreshToken);
     await _writeRefreshTokens(refreshTokens);
-  }
-
-  Future<Map<String, Map<String, Object?>>> _readUsers() async {
-    final rawUsers = await _storage.read(_usersKey);
-    if (rawUsers == null) {
-      return {};
-    }
-
-    final decoded = jsonDecode(rawUsers);
-    if (decoded is! Map<String, dynamic>) {
-      return {};
-    }
-
-    return decoded.map(
-      (key, value) => MapEntry(
-        key,
-        Map<String, Object?>.from(value as Map<String, dynamic>),
-      ),
-    );
-  }
-
-  Future<void> _writeUsers(Map<String, Map<String, Object?>> users) {
-    return _storage.write(key: _usersKey, value: jsonEncode(users));
   }
 
   Future<Map<String, String>> _readRefreshTokens() async {
@@ -174,18 +173,28 @@ final class LocalAuthRemoteDataSource implements AuthRemoteDataSource {
     );
   }
 
-  Future<AuthSessionDto> _createSession(Map<String, Object?> user) async {
+  Future<AuthSessionDto> _createSession(UsersTableData user) async {
     final refreshToken = 'local-refresh-${_uuid.v7()}';
     final refreshTokens = await _readRefreshTokens();
-    refreshTokens[refreshToken] = user['email']! as String;
+    refreshTokens[refreshToken] = user.email;
     await _writeRefreshTokens(refreshTokens);
 
     return AuthSessionDto(
-      userId: user['userId']! as String,
-      email: user['email']! as String,
+      userId: user.id,
+      email: user.email,
       accessToken: 'local-access-${_uuid.v7()}',
       refreshToken: refreshToken,
       expiresAt: DateTime.now().toUtc().add(const Duration(days: 30)),
     );
+  }
+
+  String _displayName(RegistrationDto data, String email) {
+    final displayName = data.displayName?.trim();
+    if (displayName != null && displayName.isNotEmpty) return displayName;
+    return email.split('@').first;
+  }
+
+  String _hashPassword(String password, String salt) {
+    return sha256.convert(utf8.encode('$salt:$password')).toString();
   }
 }

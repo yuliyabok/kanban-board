@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/providers/core_providers.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../data/datasources/board_local_datasource.dart';
 import '../../data/datasources/board_remote_datasource.dart';
 import '../../data/repositories/offline_first_board_repository.dart';
@@ -35,5 +36,14 @@ final createBoardProvider = Provider<CreateBoard>(
 );
 
 final watchBoardsProvider = StreamProvider.autoDispose<List<BoardEntity>>(
-  (ref) => ref.watch(watchBoardsUseCaseProvider).call(),
+  (ref) {
+    final session = ref
+        .watch(authControllerProvider)
+        .maybeWhen(
+          data: (value) => value,
+          orElse: () => null,
+        );
+    if (session == null) return const Stream.empty();
+    return ref.watch(watchBoardsUseCaseProvider).visibleToUser(session.userId);
+  },
 );

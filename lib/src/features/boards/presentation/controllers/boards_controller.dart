@@ -18,6 +18,7 @@ class BoardsController extends AsyncNotifier<void> {
   Future<void> create({
     required String title,
     String? description,
+    String? workspaceId,
   }) async {
     final session = ref
         .read(authControllerProvider)
@@ -41,6 +42,7 @@ class BoardsController extends AsyncNotifier<void> {
           BoardEntity(
             id: '',
             ownerId: session.userId,
+            workspaceId: workspaceId,
             title: title,
             description: description,
             createdAt: now,

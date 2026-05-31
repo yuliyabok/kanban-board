@@ -5,6 +5,7 @@ final class AppIcons {
 
   static const IconData boards = Icons.dashboard_customize_outlined;
   static const IconData board = Icons.view_kanban_outlined;
+  static const IconData calendar = Icons.calendar_month_outlined;
   static const IconData tasks = Icons.task_alt_rounded;
   static const IconData search = Icons.search_rounded;
   static const IconData add = Icons.add_rounded;

@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$BoardEntity {
 
- String get id; String get ownerId; String get title; DateTime get createdAt; DateTime get updatedAt; String? get description; DateTime? get deletedAt; bool get isSynced;
+ String get id; String get ownerId; String get title; DateTime get createdAt; DateTime get updatedAt; String? get workspaceId; String? get description; DateTime? get deletedAt; bool get isSynced;
 /// Create a copy of BoardEntity
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $BoardEntityCopyWith<BoardEntity> get copyWith => _$BoardEntityCopyWithImpl<Boar
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is BoardEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.ownerId, ownerId) || other.ownerId == ownerId)&&(identical(other.title, title) || other.title == title)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.description, description) || other.description == description)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.isSynced, isSynced) || other.isSynced == isSynced));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BoardEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.ownerId, ownerId) || other.ownerId == ownerId)&&(identical(other.title, title) || other.title == title)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.workspaceId, workspaceId) || other.workspaceId == workspaceId)&&(identical(other.description, description) || other.description == description)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.isSynced, isSynced) || other.isSynced == isSynced));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,ownerId,title,createdAt,updatedAt,description,deletedAt,isSynced);
+int get hashCode => Object.hash(runtimeType,id,ownerId,title,createdAt,updatedAt,workspaceId,description,deletedAt,isSynced);
 
 @override
 String toString() {
-  return 'BoardEntity(id: $id, ownerId: $ownerId, title: $title, createdAt: $createdAt, updatedAt: $updatedAt, description: $description, deletedAt: $deletedAt, isSynced: $isSynced)';
+  return 'BoardEntity(id: $id, ownerId: $ownerId, title: $title, createdAt: $createdAt, updatedAt: $updatedAt, workspaceId: $workspaceId, description: $description, deletedAt: $deletedAt, isSynced: $isSynced)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $BoardEntityCopyWith<$Res>  {
   factory $BoardEntityCopyWith(BoardEntity value, $Res Function(BoardEntity) _then) = _$BoardEntityCopyWithImpl;
 @useResult
 $Res call({
- String id, String ownerId, String title, DateTime createdAt, DateTime updatedAt, String? description, DateTime? deletedAt, bool isSynced
+ String id, String ownerId, String title, DateTime createdAt, DateTime updatedAt, String? workspaceId, String? description, DateTime? deletedAt, bool isSynced
 });
 
 
@@ -62,14 +62,15 @@ class _$BoardEntityCopyWithImpl<$Res>
 
 /// Create a copy of BoardEntity
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? ownerId = null,Object? title = null,Object? createdAt = null,Object? updatedAt = null,Object? description = freezed,Object? deletedAt = freezed,Object? isSynced = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? ownerId = null,Object? title = null,Object? createdAt = null,Object? updatedAt = null,Object? workspaceId = freezed,Object? description = freezed,Object? deletedAt = freezed,Object? isSynced = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,ownerId: null == ownerId ? _self.ownerId : ownerId // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
-as DateTime,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as DateTime,workspaceId: freezed == workspaceId ? _self.workspaceId : workspaceId // ignore: cast_nullable_to_non_nullable
+as String?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,deletedAt: freezed == deletedAt ? _self.deletedAt : deletedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,isSynced: null == isSynced ? _self.isSynced : isSynced // ignore: cast_nullable_to_non_nullable
 as bool,
@@ -157,10 +158,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String ownerId,  String title,  DateTime createdAt,  DateTime updatedAt,  String? description,  DateTime? deletedAt,  bool isSynced)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String ownerId,  String title,  DateTime createdAt,  DateTime updatedAt,  String? workspaceId,  String? description,  DateTime? deletedAt,  bool isSynced)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _BoardEntity() when $default != null:
-return $default(_that.id,_that.ownerId,_that.title,_that.createdAt,_that.updatedAt,_that.description,_that.deletedAt,_that.isSynced);case _:
+return $default(_that.id,_that.ownerId,_that.title,_that.createdAt,_that.updatedAt,_that.workspaceId,_that.description,_that.deletedAt,_that.isSynced);case _:
   return orElse();
 
 }
@@ -178,10 +179,10 @@ return $default(_that.id,_that.ownerId,_that.title,_that.createdAt,_that.updated
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String ownerId,  String title,  DateTime createdAt,  DateTime updatedAt,  String? description,  DateTime? deletedAt,  bool isSynced)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String ownerId,  String title,  DateTime createdAt,  DateTime updatedAt,  String? workspaceId,  String? description,  DateTime? deletedAt,  bool isSynced)  $default,) {final _that = this;
 switch (_that) {
 case _BoardEntity():
-return $default(_that.id,_that.ownerId,_that.title,_that.createdAt,_that.updatedAt,_that.description,_that.deletedAt,_that.isSynced);case _:
+return $default(_that.id,_that.ownerId,_that.title,_that.createdAt,_that.updatedAt,_that.workspaceId,_that.description,_that.deletedAt,_that.isSynced);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -198,10 +199,10 @@ return $default(_that.id,_that.ownerId,_that.title,_that.createdAt,_that.updated
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String ownerId,  String title,  DateTime createdAt,  DateTime updatedAt,  String? description,  DateTime? deletedAt,  bool isSynced)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String ownerId,  String title,  DateTime createdAt,  DateTime updatedAt,  String? workspaceId,  String? description,  DateTime? deletedAt,  bool isSynced)?  $default,) {final _that = this;
 switch (_that) {
 case _BoardEntity() when $default != null:
-return $default(_that.id,_that.ownerId,_that.title,_that.createdAt,_that.updatedAt,_that.description,_that.deletedAt,_that.isSynced);case _:
+return $default(_that.id,_that.ownerId,_that.title,_that.createdAt,_that.updatedAt,_that.workspaceId,_that.description,_that.deletedAt,_that.isSynced);case _:
   return null;
 
 }
@@ -213,7 +214,7 @@ return $default(_that.id,_that.ownerId,_that.title,_that.createdAt,_that.updated
 
 
 class _BoardEntity implements BoardEntity {
-  const _BoardEntity({required this.id, required this.ownerId, required this.title, required this.createdAt, required this.updatedAt, this.description, this.deletedAt, this.isSynced = false});
+  const _BoardEntity({required this.id, required this.ownerId, required this.title, required this.createdAt, required this.updatedAt, this.workspaceId, this.description, this.deletedAt, this.isSynced = false});
   
 
 @override final  String id;
@@ -221,6 +222,7 @@ class _BoardEntity implements BoardEntity {
 @override final  String title;
 @override final  DateTime createdAt;
 @override final  DateTime updatedAt;
+@override final  String? workspaceId;
 @override final  String? description;
 @override final  DateTime? deletedAt;
 @override@JsonKey() final  bool isSynced;
@@ -235,16 +237,16 @@ _$BoardEntityCopyWith<_BoardEntity> get copyWith => __$BoardEntityCopyWithImpl<_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BoardEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.ownerId, ownerId) || other.ownerId == ownerId)&&(identical(other.title, title) || other.title == title)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.description, description) || other.description == description)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.isSynced, isSynced) || other.isSynced == isSynced));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BoardEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.ownerId, ownerId) || other.ownerId == ownerId)&&(identical(other.title, title) || other.title == title)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.workspaceId, workspaceId) || other.workspaceId == workspaceId)&&(identical(other.description, description) || other.description == description)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.isSynced, isSynced) || other.isSynced == isSynced));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,ownerId,title,createdAt,updatedAt,description,deletedAt,isSynced);
+int get hashCode => Object.hash(runtimeType,id,ownerId,title,createdAt,updatedAt,workspaceId,description,deletedAt,isSynced);
 
 @override
 String toString() {
-  return 'BoardEntity(id: $id, ownerId: $ownerId, title: $title, createdAt: $createdAt, updatedAt: $updatedAt, description: $description, deletedAt: $deletedAt, isSynced: $isSynced)';
+  return 'BoardEntity(id: $id, ownerId: $ownerId, title: $title, createdAt: $createdAt, updatedAt: $updatedAt, workspaceId: $workspaceId, description: $description, deletedAt: $deletedAt, isSynced: $isSynced)';
 }
 
 
@@ -255,7 +257,7 @@ abstract mixin class _$BoardEntityCopyWith<$Res> implements $BoardEntityCopyWith
   factory _$BoardEntityCopyWith(_BoardEntity value, $Res Function(_BoardEntity) _then) = __$BoardEntityCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String ownerId, String title, DateTime createdAt, DateTime updatedAt, String? description, DateTime? deletedAt, bool isSynced
+ String id, String ownerId, String title, DateTime createdAt, DateTime updatedAt, String? workspaceId, String? description, DateTime? deletedAt, bool isSynced
 });
 
 
@@ -272,14 +274,15 @@ class __$BoardEntityCopyWithImpl<$Res>
 
 /// Create a copy of BoardEntity
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? ownerId = null,Object? title = null,Object? createdAt = null,Object? updatedAt = null,Object? description = freezed,Object? deletedAt = freezed,Object? isSynced = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? ownerId = null,Object? title = null,Object? createdAt = null,Object? updatedAt = null,Object? workspaceId = freezed,Object? description = freezed,Object? deletedAt = freezed,Object? isSynced = null,}) {
   return _then(_BoardEntity(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,ownerId: null == ownerId ? _self.ownerId : ownerId // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
-as DateTime,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as DateTime,workspaceId: freezed == workspaceId ? _self.workspaceId : workspaceId // ignore: cast_nullable_to_non_nullable
+as String?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,deletedAt: freezed == deletedAt ? _self.deletedAt : deletedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,isSynced: null == isSynced ? _self.isSynced : isSynced // ignore: cast_nullable_to_non_nullable
 as bool,

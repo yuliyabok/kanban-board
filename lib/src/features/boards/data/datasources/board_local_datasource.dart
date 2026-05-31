@@ -7,11 +7,15 @@ import '../mappers/board_mapper.dart';
 abstract interface class BoardLocalDataSource {
   Stream<List<BoardEntity>> watchAll();
 
+  Stream<List<BoardEntity>> watchVisibleToUser(String userId);
+
   Future<List<BoardEntity>> getAll();
 
   Future<void> save(BoardEntity board);
 
   Future<void> savePending(BoardEntity board, String syncAction);
+
+  Future<void> addOwnerMembership(BoardEntity board);
 
   Future<void> markSynced(String boardId);
 
@@ -32,6 +36,40 @@ final class DriftBoardLocalDataSource implements BoardLocalDataSource {
     return query.watch().map(
       (rows) => rows.map((row) => row.toEntity()).toList(growable: false),
     );
+  }
+
+  @override
+  Stream<List<BoardEntity>> watchVisibleToUser(String userId) {
+    return _database.select(_database.boardsTable).watch().asyncMap((
+      rows,
+    ) async {
+      final boardMembers = await (_database.select(
+        _database.boardMembersTable,
+      )..where((member) => member.userId.equals(userId))).get();
+      final workspaceMembers = await (_database.select(
+        _database.workspaceMembersTable,
+      )..where((member) => member.userId.equals(userId))).get();
+
+      final boardIds = boardMembers.map((member) => member.boardId).toSet();
+      final workspaceIds = workspaceMembers
+          .map((member) => member.workspaceId)
+          .toSet();
+
+      final visible =
+          rows
+              .where((row) {
+                if (row.deletedAt != null) return false;
+                if (row.ownerId == userId) return true;
+                if (boardIds.contains(row.id)) return true;
+                final workspaceId = row.workspaceId;
+                return workspaceId != null &&
+                    workspaceIds.contains(workspaceId);
+              })
+              .toList(growable: false)
+            ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+
+      return visible.map((row) => row.toEntity()).toList(growable: false);
+    });
   }
 
   @override
@@ -56,6 +94,23 @@ final class DriftBoardLocalDataSource implements BoardLocalDataSource {
     return _database
         .into(_database.boardsTable)
         .insertOnConflictUpdate(board.toCompanion(syncAction: syncAction));
+  }
+
+  @override
+  Future<void> addOwnerMembership(BoardEntity board) {
+    return _database
+        .into(_database.boardMembersTable)
+        .insertOnConflictUpdate(
+          BoardMembersTableCompanion.insert(
+            id: '${board.id}:${board.ownerId}',
+            boardId: board.id,
+            userId: board.ownerId,
+            role: 'admin',
+            joinedAt: board.createdAt,
+            isSynced: const Value(false),
+            syncAction: const Value('create'),
+          ),
+        );
   }
 
   @override

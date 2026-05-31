@@ -10,6 +10,7 @@ import '../../../../shared/ui/loading_skeleton.dart';
 import '../controllers/boards_controller.dart';
 import '../providers/board_providers.dart';
 import '../widgets/board_card.dart';
+import '../../../workspaces/presentation/providers/workspace_providers.dart';
 
 class BoardsPage extends ConsumerWidget {
   const BoardsPage({super.key});
@@ -18,6 +19,7 @@ class BoardsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final boardsState = ref.watch(watchBoardsProvider);
     final commandState = ref.watch(boardsControllerProvider);
+    final selectedWorkspaceId = ref.watch(selectedWorkspaceProvider);
 
     ref.listen(boardsControllerProvider, (previous, next) {
       if (next case AsyncError(:final error)) {
@@ -34,7 +36,12 @@ class BoardsPage extends ConsumerWidget {
         loading: () => const _BoardsSkeleton(),
         error: (error, stackTrace) => Center(child: Text(error.toString())),
         data: (boards) {
-          if (boards.isEmpty) {
+          final visibleBoards = selectedWorkspaceId == null
+              ? boards
+              : boards
+                    .where((board) => board.workspaceId == selectedWorkspaceId)
+                    .toList(growable: false);
+          if (visibleBoards.isEmpty) {
             return AppEmptyState(
               icon: Icons.space_dashboard_outlined,
               title: 'Создайте первую доску',
@@ -86,9 +93,9 @@ class BoardsPage extends ConsumerWidget {
                           crossAxisSpacing: context.spacing.lg,
                           mainAxisSpacing: context.spacing.lg,
                         ),
-                        itemCount: boards.length,
+                        itemCount: visibleBoards.length,
                         itemBuilder: (context, index) {
-                          final board = boards[index];
+                          final board = visibleBoards[index];
                           return BoardCard(
                             board: board,
                             onTap: () {
@@ -168,6 +175,7 @@ class BoardsPage extends ConsumerWidget {
           .create(
             title: titleController.text,
             description: descriptionController.text,
+            workspaceId: ref.read(selectedWorkspaceProvider),
           );
     }
 
@@ -218,6 +226,22 @@ class _BoardsHeader extends StatelessWidget {
           onPressed: onCreate,
           icon: const Icon(Icons.add_rounded),
           label: const Text('Новая доска'),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          tooltip: 'Workspace',
+          onPressed: () => context.goNamed(AppRoute.workspaces.name),
+          icon: const Icon(Icons.workspaces_outline),
+        ),
+        IconButton(
+          tooltip: 'Приглашения',
+          onPressed: () => context.goNamed(AppRoute.invitations.name),
+          icon: const Icon(Icons.mark_email_unread_outlined),
+        ),
+        IconButton(
+          tooltip: 'Профиль',
+          onPressed: () => context.goNamed(AppRoute.profile.name),
+          icon: const Icon(Icons.account_circle_outlined),
         ),
       ],
     );

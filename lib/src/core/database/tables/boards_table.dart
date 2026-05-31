@@ -5,6 +5,8 @@ class BoardsTable extends Table {
 
   TextColumn get ownerId => text()();
 
+  TextColumn get workspaceId => text().nullable()();
+
   TextColumn get title => text().withLength(min: 1, max: 120)();
 
   TextColumn get description => text().nullable()();

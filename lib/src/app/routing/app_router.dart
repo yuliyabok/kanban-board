@@ -5,8 +5,15 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/domain/entities/auth_session.dart';
 import '../../features/auth/presentation/controllers/auth_controller.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
+import '../../features/auth/presentation/pages/profile_page.dart';
+import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/boards/presentation/pages/boards_page.dart';
+import '../../features/calendar/presentation/pages/calendar_page.dart';
+import '../../features/invitations/presentation/pages/accept_invitation_page.dart';
+import '../../features/invitations/presentation/pages/pending_invitations_page.dart';
+import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/tasks/presentation/pages/tasks_page.dart';
+import '../../features/workspaces/presentation/pages/workspace_list_page.dart';
 import 'app_routes.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -16,7 +23,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: AppRoute.boards.path,
     refreshListenable: authNotifier,
     redirect: (context, state) {
-      final isLoggingIn = state.matchedLocation == AppRoute.login.path;
+      final isLoggingIn =
+          state.matchedLocation == AppRoute.login.path ||
+          state.matchedLocation == AppRoute.register.path;
       final authState = authNotifier.authState;
 
       return switch (authState) {
@@ -35,9 +44,46 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginPage(),
       ),
       GoRoute(
+        path: AppRoute.register.path,
+        name: AppRoute.register.name,
+        builder: (context, state) => const RegisterPage(),
+      ),
+      GoRoute(
+        path: AppRoute.profile.path,
+        name: AppRoute.profile.name,
+        builder: (context, state) => const ProfilePage(),
+      ),
+      GoRoute(
+        path: AppRoute.settings.path,
+        name: AppRoute.settings.name,
+        builder: (context, state) => const SettingsPage(),
+      ),
+      GoRoute(
+        path: AppRoute.workspaces.path,
+        name: AppRoute.workspaces.name,
+        builder: (context, state) => const WorkspaceListPage(),
+      ),
+      GoRoute(
+        path: AppRoute.invitations.path,
+        name: AppRoute.invitations.name,
+        builder: (context, state) => const PendingInvitationsPage(),
+      ),
+      GoRoute(
+        path: AppRoute.acceptInvitation.path,
+        name: AppRoute.acceptInvitation.name,
+        builder: (context, state) => AcceptInvitationPage(
+          token: state.pathParameters['token']!,
+        ),
+      ),
+      GoRoute(
         path: AppRoute.boards.path,
         name: AppRoute.boards.name,
         builder: (context, state) => const BoardsPage(),
+      ),
+      GoRoute(
+        path: AppRoute.calendar.path,
+        name: AppRoute.calendar.name,
+        builder: (context, state) => const CalendarPage(),
       ),
       GoRoute(
         path: AppRoute.boardTasks.path,

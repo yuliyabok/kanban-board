@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../src/app/routing/app_routes.dart';
+import '../../src/core/providers/core_providers.dart';
+import '../../src/features/boards/domain/entities/board_entity.dart';
+import '../../src/features/boards/presentation/providers/board_providers.dart';
 import '../theme/app_breakpoints.dart';
 import '../theme/app_icons.dart';
 import '../theme/app_theme.dart';
@@ -294,7 +299,7 @@ class _ShellToolbar extends ConsumerWidget {
   }
 }
 
-class _ShellSidebar extends StatelessWidget {
+class _ShellSidebar extends ConsumerWidget {
   const _ShellSidebar({
     required this.compact,
     required this.title,
@@ -304,7 +309,7 @@ class _ShellSidebar extends StatelessWidget {
   final String title;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.all(context.spacing.md),
@@ -326,7 +331,15 @@ class _ShellSidebar extends StatelessWidget {
               icon: AppIcons.board,
               label: 'Канбан',
               compact: compact,
-              selected: title != 'Доски',
+              selected: title == 'Канбан',
+              onTap: () => unawaited(_openLastBoard(context, ref)),
+            ),
+            _SidebarItem(
+              icon: AppIcons.calendar,
+              label: 'Календарь',
+              compact: compact,
+              selected: title == 'Календарь',
+              onTap: () => context.go(AppRoute.calendar.path),
             ),
             _SidebarItem(
               icon: AppIcons.activity,
@@ -338,6 +351,13 @@ class _ShellSidebar extends StatelessWidget {
               icon: AppIcons.settings,
               label: 'Настройки',
               compact: compact,
+              selected: title == 'Настройки',
+              onTap: () {
+                if (GoRouterState.of(context).uri.path !=
+                    AppRoute.settings.path) {
+                  context.push(AppRoute.settings.path);
+                }
+              },
             ),
           ],
         ),
@@ -472,23 +492,76 @@ class _SidebarItemState extends State<_SidebarItem> {
   }
 }
 
-class _MobileNavBar extends StatelessWidget {
+class _MobileNavBar extends ConsumerWidget {
   const _MobileNavBar();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final location = GoRouterState.of(context).uri.path;
+    final selectedIndex = location == AppRoute.settings.path
+        ? 3
+        : location == AppRoute.calendar.path
+        ? 1
+        : location.startsWith('/boards/')
+        ? 2
+        : 0;
     return NavigationBar(
-      selectedIndex: 0,
+      selectedIndex: selectedIndex,
       onDestinationSelected: (index) {
         if (index == 0) {
           context.go(AppRoute.boards.path);
         }
+        if (index == 1) {
+          context.go(AppRoute.calendar.path);
+        }
+        if (index == 2) {
+          unawaited(_openLastBoard(context, ref));
+        }
+        if (index == 3) {
+          if (location != AppRoute.settings.path) {
+            context.push(AppRoute.settings.path);
+          }
+        }
       },
       destinations: const [
         NavigationDestination(icon: Icon(AppIcons.boards), label: 'Доски'),
-        NavigationDestination(icon: Icon(AppIcons.search), label: 'Поиск'),
+        NavigationDestination(
+          icon: Icon(AppIcons.calendar),
+          label: 'Календарь',
+        ),
+        NavigationDestination(icon: Icon(AppIcons.board), label: 'Канбан'),
         NavigationDestination(icon: Icon(AppIcons.settings), label: 'Еще'),
       ],
     );
   }
+}
+
+Future<void> _openLastBoard(BuildContext context, WidgetRef ref) async {
+  final cachedBoards = ref.read(watchBoardsProvider).asData?.value;
+  final loadedBoards = cachedBoards == null
+      ? await ref.read(watchBoardsProvider.future)
+      : null;
+  final List<BoardEntity> boards =
+      cachedBoards ?? loadedBoards ?? const <BoardEntity>[];
+  final lastBoardId = await ref
+      .read(secureStorageProvider)
+      .read(
+        'last_board_id',
+      );
+  if (!context.mounted) return;
+
+  final fallbackBoardId = boards.isEmpty ? null : boards.first.id;
+  final boardId = boards.any((board) => board.id == lastBoardId)
+      ? lastBoardId
+      : fallbackBoardId;
+
+  if (boardId == null) {
+    context.go(AppRoute.boards.path);
+    return;
+  }
+
+  context.goNamed(
+    AppRoute.boardTasks.name,
+    pathParameters: {'boardId': boardId},
+  );
 }

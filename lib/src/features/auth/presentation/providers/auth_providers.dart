@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/providers/core_providers.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../users/data/datasources/user_local_datasource.dart';
 import '../../data/datasources/auth_local_datasource.dart';
 import '../../data/datasources/auth_remote_datasource.dart';
 import '../../data/repositories/default_auth_repository.dart';
@@ -21,6 +22,9 @@ final authLocalDataSourceProvider = Provider<AuthLocalDataSource>((ref) {
 final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
   return LocalAuthRemoteDataSource(
     storage: ref.watch(secureStorageProvider),
+    userLocalDataSource: DriftUserLocalDataSource(
+      ref.watch(appDatabaseProvider),
+    ),
     uuid: const Uuid(),
   );
 });

@@ -8,11 +8,11 @@ import '../core/providers/core_providers.dart';
 import 'app.dart';
 
 Future<void> bootstrap() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  _configureLogging();
-
   runZonedGuarded(
     () {
+      WidgetsFlutterBinding.ensureInitialized();
+      _configureLogging();
+
       runApp(
         const ProviderScope(
           observers: [AppProviderObserver()],

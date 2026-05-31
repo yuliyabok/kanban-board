@@ -11,13 +11,14 @@ enough to analyze and test locally, but the product is not fully finished yet.
 What works now:
 
 - app bootstrap, routing, theme, Riverpod wiring
-- local Drift database with boards, columns, and tasks
+- local Drift database with boards, columns, tasks, users, workspaces,
+  members, assignees, comments, invitations, task types, and card settings
 - auth flow code: restore session, sign in, register, refresh, sign out
 - boards list and board creation
 - task board UI with search, task creation, reorder, toggle complete, delete
 - board constructor mode for creating, renaming, reordering, and deleting
   columns
-- offline-first repositories for boards, tasks, and columns
+- offline-first repositories across the main feature modules
 
 What is still incomplete:
 
@@ -51,6 +52,14 @@ Top-level application areas:
 - `lib/src/features/board_constructor/`: constructor mode for managing board
   columns
 - `lib/src/features/tasks/`: task entities, repository, board page, task UI
+- `lib/src/features/task_types/`: board-specific task type setup
+- `lib/src/features/board_settings/`: card and column appearance settings
+- `lib/src/features/workspaces/`: workspace entities, data access, and screens
+- `lib/src/features/board_members/`: board membership and roles
+- `lib/src/features/task_assignees/`: task assignment
+- `lib/src/features/comments/`: task comments
+- `lib/src/features/invitations/`: invite and accept flows
+- `lib/src/features/permissions/`: permission checks
 - `lib/src/shared/ui/`: shared UI helpers used by feature screens
 - `lib/core/`: reusable layout, theme, and widget primitives used by the new UI
 
@@ -101,13 +110,22 @@ Current routes:
 
 ## Local Database
 
-Drift schema version: `3`
+Drift schema version: `9`
 
 Tables:
 
 - `BoardsTable`
 - `BoardColumnsTable`
 - `TasksTable`
+- `TaskTypesTable`
+- `BoardCardSettingsTable`
+- `UsersTable`
+- `WorkspacesTable`
+- `WorkspaceMembersTable`
+- `BoardMembersTable`
+- `TaskAssigneesTable`
+- `TaskCommentsTable`
+- `InvitationsTable`
 
 Web build assets for Drift:
 

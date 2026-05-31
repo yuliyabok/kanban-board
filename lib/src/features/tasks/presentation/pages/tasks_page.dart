@@ -11,9 +11,11 @@ import '../../../../../core/theme/app_icons.dart';
 import '../../../../../core/theme/app_task_text_color_palette.dart';
 import '../../../../app/theme/app_design_tokens.dart';
 import '../../../../core/error/result.dart';
+import '../../../../core/providers/core_providers.dart';
 import '../../../../shared/ui/app_empty_state.dart';
 import '../../../../shared/ui/loading_skeleton.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../board_members/presentation/widgets/board_members_panel.dart';
 import '../../../board_constructor/presentation/controllers/board_constructor_controller.dart';
 import '../../../board_constructor/presentation/controllers/board_constructor_state.dart';
 import '../../../board_constructor/presentation/widgets/constructor_appearance_panel.dart';
@@ -25,10 +27,18 @@ import '../../../board_settings/presentation/providers/board_card_settings_provi
 import '../../../board_settings/presentation/widgets/task_card_settings_panel.dart';
 import '../../../columns/domain/entities/board_column_entity.dart';
 import '../../../columns/presentation/providers/column_providers.dart';
+import '../../../task_assignees/domain/entities/task_assignee_entity.dart';
 import '../../../task_types/domain/entities/task_type_entity.dart';
 import '../../../task_types/presentation/controllers/task_types_controller.dart';
 import '../../../task_types/presentation/providers/task_type_providers.dart';
+import '../../../task_assignees/presentation/providers/task_assignee_providers.dart';
+import '../../../task_assignees/presentation/widgets/assigned_users_section.dart';
+import '../../../task_assignees/presentation/widgets/my_tasks_filter.dart';
+import '../../../comments/presentation/widgets/task_comments_section.dart';
+import '../../../comments/presentation/providers/task_comment_providers.dart';
+import '../../../users/presentation/providers/user_providers.dart';
 import '../../domain/entities/task_entity.dart';
+import '../../domain/value_objects/task_enums.dart';
 import '../controllers/tasks_controller.dart';
 import '../providers/task_providers.dart';
 import '../widgets/board_column_view.dart';
@@ -53,8 +63,21 @@ class _TasksPageState extends ConsumerState<TasksPage> {
   final _searchController = TextEditingController();
   final _createTaskFocusNode = FocusNode();
   String _query = '';
+  bool _myTasksOnly = false;
+  bool _inProgressOnly = false;
+  TaskPriority? _priorityFilter;
   String? _createColumnId;
   TaskEntity? _selectedTask;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(
+      ref
+          .read(secureStorageProvider)
+          .write(key: 'last_board_id', value: widget.boardId),
+    );
+  }
 
   @override
   void dispose() {
@@ -70,6 +93,22 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     final columnsState = ref.watch(boardColumnsProvider(widget.boardId));
     final settingsState = ref.watch(boardCardSettingsProvider(widget.boardId));
     final taskTypesState = ref.watch(taskTypesProvider(widget.boardId));
+    final session = ref
+        .watch(authControllerProvider)
+        .maybeWhen(data: (value) => value, orElse: () => null);
+    final myTaskIds = session == null
+        ? const <String>{}
+        : ref
+              .watch(
+                myTaskAssigneeIdsProvider((
+                  boardId: widget.boardId,
+                  userId: session.userId,
+                )),
+              )
+              .maybeWhen(
+                data: (value) => value,
+                orElse: () => const <String>{},
+              );
     final constructorState = ref.watch(
       boardConstructorControllerProvider(widget.boardId),
     );
@@ -125,7 +164,15 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                     content: Center(child: Text(error.toString())),
                   ),
                   data: (tasks) {
-                    final filteredTasks = _filterTasks(tasks);
+                    final hasActiveFilters =
+                        _query.trim().isNotEmpty ||
+                        _myTasksOnly ||
+                        _inProgressOnly ||
+                        _priorityFilter != null;
+                    final filteredTasks = _filterTasks(
+                      tasks,
+                      myTaskIds: myTaskIds,
+                    );
                     return _buildShell(
                       constructor: constructor,
                       firstColumnId: columns.firstOrNull?.id,
@@ -140,6 +187,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                         settings: settings,
                         taskTypes: taskTypes,
                         hasActiveSearch: _query.trim().isNotEmpty,
+                        hasActiveFilters: hasActiveFilters,
                       ),
                     );
                   },
@@ -209,6 +257,11 @@ class _TasksPageState extends ConsumerState<TasksPage> {
               : () => _openCardSettings(settings),
         ),
         AppShellAction(
+          label: 'Участники',
+          icon: Icons.group_outlined,
+          onPressed: _openBoardMembers,
+        ),
+        AppShellAction(
           label: 'Выйти',
           icon: Icons.logout_rounded,
           onPressed: () {
@@ -240,6 +293,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     required BoardCardSettings settings,
     required List<TaskTypeEntity> taskTypes,
     required bool hasActiveSearch,
+    required bool hasActiveFilters,
   }) {
     final constructorController = ref.read(
       boardConstructorControllerProvider(widget.boardId).notifier,
@@ -261,9 +315,30 @@ class _TasksPageState extends ConsumerState<TasksPage> {
               spacing: context.spacing.sm,
               runSpacing: context.spacing.sm,
               children: [
-                _FilterChip(label: 'Все', selected: !hasActiveSearch),
-                const _FilterChip(label: 'В работе', selected: false),
-                const _FilterChip(label: 'Мои задачи', selected: false),
+                _FilterChip(
+                  label: 'Все',
+                  selected: !hasActiveFilters,
+                  onSelected: (_) => _resetFilters(),
+                ),
+                _FilterChip(
+                  label: 'В работе',
+                  selected: _inProgressOnly,
+                  onSelected: (selected) {
+                    setState(() => _inProgressOnly = selected);
+                  },
+                ),
+                MyTasksFilter(
+                  selected: _myTasksOnly,
+                  onSelected: (selected) {
+                    setState(() => _myTasksOnly = selected);
+                  },
+                ),
+                _PriorityFilterButton(
+                  selectedPriority: _priorityFilter,
+                  onSelected: (priority) {
+                    setState(() => _priorityFilter = priority);
+                  },
+                ),
                 if (hasActiveSearch)
                   ActionChip(
                     label: const Text('Сбросить поиск'),
@@ -271,6 +346,12 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                       _searchController.clear();
                       setState(() => _query = '');
                     },
+                  ),
+                if (hasActiveFilters)
+                  ActionChip(
+                    avatar: const Icon(Icons.filter_alt_off_outlined),
+                    label: const Text('Сбросить фильтры'),
+                    onPressed: _resetFilters,
                   ),
               ],
             ),
@@ -320,6 +401,16 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                     child: const Text('Сбросить'),
                   ),
                 )
+              : tasks.isEmpty && hasActiveFilters
+              ? AppEmptyState(
+                  icon: Icons.filter_alt_off_outlined,
+                  title: 'Нет задач по фильтрам',
+                  message: 'Сбросьте фильтры или выберите другой приоритет.',
+                  action: FilledButton(
+                    onPressed: _resetFilters,
+                    child: const Text('Сбросить'),
+                  ),
+                )
               : Row(
                   children: [
                     Expanded(
@@ -356,17 +447,43 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     );
   }
 
-  List<TaskEntity> _filterTasks(List<TaskEntity> tasks) {
+  List<TaskEntity> _filterTasks(
+    List<TaskEntity> tasks, {
+    required Set<String> myTaskIds,
+  }) {
     final query = _query.trim().toLowerCase();
-    if (query.isEmpty) return tasks;
+    Iterable<TaskEntity> scoped = _myTasksOnly
+        ? tasks.where((task) => myTaskIds.contains(task.id))
+        : tasks;
 
-    return tasks
+    if (_inProgressOnly) {
+      scoped = scoped.where((task) => !task.isCompleted);
+    }
+
+    final priority = _priorityFilter;
+    if (priority != null) {
+      scoped = scoped.where((task) => task.priority == priority);
+    }
+
+    if (query.isEmpty) return scoped.toList(growable: false);
+
+    return scoped
         .where((task) {
           final description = task.description?.toLowerCase() ?? '';
           return task.title.toLowerCase().contains(query) ||
               description.contains(query);
         })
         .toList(growable: false);
+  }
+
+  void _resetFilters() {
+    _searchController.clear();
+    setState(() {
+      _query = '';
+      _myTasksOnly = false;
+      _inProgressOnly = false;
+      _priorityFilter = null;
+    });
   }
 
   Future<void> _openCreateTask(
@@ -752,6 +869,19 @@ class _TasksPageState extends ConsumerState<TasksPage> {
       showDragHandle: true,
       isScrollControlled: true,
       builder: (context) => TaskCardSettingsPanel(settings: settings),
+    );
+  }
+
+  Future<void> _openBoardMembers() {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: SizedBox(
+          width: 420,
+          height: 520,
+          child: BoardMembersPanel(boardId: widget.boardId),
+        ),
+      ),
     );
   }
 
@@ -1172,19 +1302,103 @@ class _FilterChip extends StatelessWidget {
   const _FilterChip({
     required this.label,
     required this.selected,
+    required this.onSelected,
   });
 
   final String label;
   final bool selected;
+  final ValueChanged<bool> onSelected;
 
   @override
   Widget build(BuildContext context) {
     return FilterChip(
       selected: selected,
-      onSelected: (_) {},
+      onSelected: onSelected,
       label: Text(label),
     );
   }
+}
+
+class _PriorityFilterButton extends StatelessWidget {
+  const _PriorityFilterButton({
+    required this.selectedPriority,
+    required this.onSelected,
+  });
+
+  final TaskPriority? selectedPriority;
+  final ValueChanged<TaskPriority?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = selectedPriority != null;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return PopupMenuButton<TaskPriority?>(
+      tooltip: 'Фильтр по приоритету',
+      onSelected: onSelected,
+      itemBuilder: (context) => [
+        PopupMenuItem<TaskPriority?>(
+          child: Row(
+            children: [
+              Icon(
+                selectedPriority == null
+                    ? Icons.check_rounded
+                    : Icons.flag_outlined,
+                size: 18,
+              ),
+              SizedBox(width: context.spacing.sm),
+              const Text('Любой приоритет'),
+            ],
+          ),
+        ),
+        for (final priority in TaskPriority.values)
+          PopupMenuItem<TaskPriority?>(
+            value: priority,
+            child: Row(
+              children: [
+                Icon(
+                  selectedPriority == priority
+                      ? Icons.check_rounded
+                      : Icons.flag_outlined,
+                  size: 18,
+                ),
+                SizedBox(width: context.spacing.sm),
+                Text(_priorityLabel(priority)),
+              ],
+            ),
+          ),
+      ],
+      child: Chip(
+        avatar: Icon(
+          Icons.flag_outlined,
+          size: 18,
+          color: selected ? colorScheme.onSecondaryContainer : null,
+        ),
+        label: Text(
+          selectedPriority == null
+              ? 'Приоритет'
+              : 'Приоритет: ${_priorityLabel(selectedPriority!)}',
+        ),
+        backgroundColor: selected ? colorScheme.secondaryContainer : null,
+        labelStyle: selected
+            ? TextStyle(color: colorScheme.onSecondaryContainer)
+            : null,
+        side: BorderSide(
+          color: selected ? colorScheme.secondary : colorScheme.outlineVariant,
+        ),
+        visualDensity: VisualDensity.compact,
+      ),
+    );
+  }
+}
+
+String _priorityLabel(TaskPriority priority) {
+  return switch (priority) {
+    TaskPriority.low => 'Низкий',
+    TaskPriority.medium => 'Средний',
+    TaskPriority.high => 'Высокий',
+    TaskPriority.urgent => 'Срочный',
+  };
 }
 
 class _TaskDetailsPanel extends ConsumerWidget {
@@ -1204,9 +1418,27 @@ class _TaskDetailsPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final selectedTypeId = taskTypes.any((type) => type.id == task.taskTypeId)
-        ? task.taskTypeId
-        : null;
+    final liveTasks = ref
+        .watch(boardTasksProvider(task.boardId))
+        .maybeWhen(
+          data: (items) => items,
+          orElse: () => null,
+        );
+    final currentTask =
+        liveTasks?.where((item) => item.id == task.id).firstOrNull ?? task;
+    final currentSubtasks =
+        liveTasks
+            ?.where((item) => item.parentTaskId == currentTask.id)
+            .toList(growable: false) ??
+        subtasks;
+    final commentCount =
+        ref
+            .watch(taskCommentsProvider(currentTask.id))
+            .maybeWhen(data: (items) => items.length, orElse: () => null) ??
+        0;
+    final currentTaskType = taskTypes
+        .where((type) => type.id == currentTask.taskTypeId)
+        .firstOrNull;
 
     return Container(
       width: AppBreakpoints.of(context).isPhone ? double.infinity : 360,
@@ -1219,7 +1451,6 @@ class _TaskDetailsPanel extends ConsumerWidget {
         boxShadow: context.shadows.popover,
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -1230,9 +1461,18 @@ class _TaskDetailsPanel extends ConsumerWidget {
                   style: textTheme.titleLarge,
                 ),
               ),
+              TextButton.icon(
+                onPressed: () => unawaited(
+                  _editTask(context, ref, currentTask),
+                ),
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Редактировать'),
+              ),
               IconButton(
                 tooltip: 'Редактировать оформление',
-                onPressed: () => unawaited(_editAppearance(context, ref)),
+                onPressed: () => unawaited(
+                  _editAppearance(context, ref, currentTask),
+                ),
                 icon: const Icon(Icons.palette_outlined),
               ),
               if (onClose != null)
@@ -1243,117 +1483,489 @@ class _TaskDetailsPanel extends ConsumerWidget {
                 ),
             ],
           ),
-          SizedBox(height: context.spacing.lg),
-          Text(task.title, style: textTheme.headlineSmall),
           SizedBox(height: context.spacing.md),
-          CheckboxListTile(
-            value: task.isCompleted,
-            onChanged: (_) {
-              unawaited(
-                ref
-                    .read(tasksControllerProvider.notifier)
-                    .toggleComplete(
-                      boardId: task.boardId,
-                      taskId: task.id,
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(currentTask.title, style: textTheme.headlineSmall),
+                  SizedBox(height: context.spacing.md),
+                  CheckboxListTile(
+                    value: currentTask.isCompleted,
+                    onChanged: (_) {
+                      unawaited(
+                        ref
+                            .read(tasksControllerProvider.notifier)
+                            .toggleComplete(
+                              boardId: currentTask.boardId,
+                              taskId: currentTask.id,
+                            ),
+                      );
+                    },
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: Text(
+                      currentTask.isCompleted ? 'Завершена' : 'В работе',
                     ),
-              );
-            },
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
-            title: Text(task.isCompleted ? 'Завершена' : 'В работе'),
-          ),
-          SizedBox(height: context.spacing.md),
-          Text(
-            task.description?.isNotEmpty ?? false
-                ? task.description!
-                : 'Описание пока не добавлено.',
-            style: textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-          SizedBox(height: context.spacing.xl),
-          DropdownButtonFormField<String?>(
-            initialValue: selectedTypeId,
-            items: [
-              const DropdownMenuItem<String?>(
-                child: Text('Без типа'),
-              ),
-              for (final type in taskTypes)
-                DropdownMenuItem<String?>(
-                  value: type.id,
-                  child: Text(type.name, overflow: TextOverflow.ellipsis),
-                ),
-            ],
-            onChanged: (value) {
-              unawaited(
-                ref
-                    .read(tasksControllerProvider.notifier)
-                    .updateTaskType(
-                      task: task,
-                      taskTypeId: value,
+                  ),
+                  SizedBox(height: context.spacing.md),
+                  if (currentTask.description?.isNotEmpty ?? false)
+                    Text(
+                      currentTask.description!,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    )
+                  else
+                    TextButton.icon(
+                      onPressed: () => unawaited(
+                        _editTask(context, ref, currentTask),
+                      ),
+                      icon: const Icon(Icons.notes_outlined),
+                      label: const Text('Добавить описание'),
                     ),
-              );
-            },
-            decoration: const InputDecoration(
-              labelText: 'Тип задачи',
-              prefixIcon: Icon(Icons.category_outlined),
+                  SizedBox(height: context.spacing.xl),
+                  _TaskMetaSummary(
+                    task: currentTask,
+                    taskType: currentTaskType,
+                    commentCount: commentCount,
+                  ),
+                  SizedBox(height: context.spacing.xl),
+                  Text('Подзадачи', style: textTheme.titleMedium),
+                  SizedBox(height: context.spacing.sm),
+                  SubtaskList(
+                    subtasks: currentSubtasks,
+                    onToggle: (subtask) {
+                      // Details panel is presentation-only; task mutation is wired from cards.
+                    },
+                  ),
+                  SizedBox(height: context.spacing.md),
+                  SubtaskEditor(parent: currentTask),
+                  SizedBox(height: context.spacing.xl),
+                  Divider(color: colorScheme.outlineVariant),
+                  SizedBox(height: context.spacing.md),
+                  Text('Активность', style: textTheme.titleMedium),
+                  SizedBox(height: context.spacing.sm),
+                  Text(
+                    'Обновлено ${currentTask.updatedAt.toLocal()}',
+                    style: textTheme.bodySmall,
+                  ),
+                  SizedBox(height: context.spacing.xl),
+                  TaskCommentsSection(taskId: currentTask.id),
+                ],
+              ),
             ),
-          ),
-          SizedBox(height: context.spacing.lg),
-          Wrap(
-            spacing: context.spacing.sm,
-            runSpacing: context.spacing.sm,
-            children: const [
-              Chip(
-                avatar: Icon(Icons.flag_outlined, size: 16),
-                label: Text('Medium priority'),
-                visualDensity: VisualDensity.compact,
-              ),
-              Chip(
-                avatar: Icon(Icons.schedule_rounded, size: 16),
-                label: Text('Сегодня'),
-                visualDensity: VisualDensity.compact,
-              ),
-              Chip(
-                avatar: Icon(Icons.comment_outlined, size: 16),
-                label: Text('0 комментариев'),
-                visualDensity: VisualDensity.compact,
-              ),
-            ],
-          ),
-          SizedBox(height: context.spacing.xl),
-          Text('Подзадачи', style: textTheme.titleMedium),
-          SizedBox(height: context.spacing.sm),
-          SubtaskList(
-            subtasks: subtasks,
-            onToggle: (subtask) {
-              // Details panel is presentation-only; task mutation is wired from cards.
-            },
-          ),
-          SizedBox(height: context.spacing.md),
-          SubtaskEditor(parent: task),
-          SizedBox(height: context.spacing.xl),
-          Divider(color: colorScheme.outlineVariant),
-          SizedBox(height: context.spacing.md),
-          Text('Активность', style: textTheme.titleMedium),
-          SizedBox(height: context.spacing.sm),
-          Text(
-            'Обновлено ${task.updatedAt.toLocal()}',
-            style: textTheme.bodySmall,
           ),
         ],
       ),
     );
   }
 
-  Future<void> _editAppearance(BuildContext context, WidgetRef ref) async {
+  Future<void> _editTask(
+    BuildContext context,
+    WidgetRef ref,
+    TaskEntity currentTask,
+  ) async {
     final updated = await showDialog<TaskEntity>(
       context: context,
-      builder: (context) => _TaskAppearanceDialog(task: task),
+      builder: (context) => _TaskEditDialog(
+        task: currentTask,
+        taskTypes: taskTypes,
+      ),
     );
     if (updated == null) return;
     unawaited(ref.read(tasksControllerProvider.notifier).updateTask(updated));
   }
+
+  Future<void> _editAppearance(
+    BuildContext context,
+    WidgetRef ref,
+    TaskEntity currentTask,
+  ) async {
+    final updated = await showDialog<TaskEntity>(
+      context: context,
+      builder: (context) => _TaskAppearanceDialog(task: currentTask),
+    );
+    if (updated == null) return;
+    unawaited(ref.read(tasksControllerProvider.notifier).updateTask(updated));
+  }
+}
+
+class _TaskMetaSummary extends ConsumerWidget {
+  const _TaskMetaSummary({
+    required this.task,
+    required this.taskType,
+    required this.commentCount,
+  });
+
+  final TaskEntity task;
+  final TaskTypeEntity? taskType;
+  final int commentCount;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final assignees = ref
+        .watch(taskAssigneesProvider(task.id))
+        .maybeWhen(
+          data: (items) => items,
+          orElse: () => const <TaskAssigneeEntity>[],
+        );
+
+    return Wrap(
+      spacing: context.spacing.sm,
+      runSpacing: context.spacing.sm,
+      children: [
+        _MetaChip(
+          icon: Icons.category_outlined,
+          label: taskType?.name ?? 'Без типа',
+        ),
+        _MetaChip(
+          icon: Icons.flag_outlined,
+          label: _priorityLabel(task.priority),
+        ),
+        _MetaChip(
+          icon: Icons.event_available_outlined,
+          label: task.startDate == null
+              ? 'Не поставлена'
+              : 'Поставлена ${_formatShortDate(task.startDate!)}',
+        ),
+        _MetaChip(
+          icon: Icons.event_busy_outlined,
+          label: task.dueDate == null
+              ? 'Без дедлайна'
+              : 'Дедлайн ${_formatShortDate(task.dueDate!)}',
+        ),
+        _MetaChip(
+          icon: Icons.comment_outlined,
+          label: '$commentCount комментариев',
+        ),
+        if (assignees.isEmpty)
+          const _MetaChip(
+            icon: Icons.people_outline_rounded,
+            label: 'Без исполнителей',
+          )
+        else
+          for (final assignee in assignees.take(3))
+            _AssigneeSummaryChip(userId: assignee.userId),
+        if (assignees.length > 3)
+          _MetaChip(
+            icon: Icons.people_outline_rounded,
+            label: '+${assignees.length - 3}',
+          ),
+      ],
+    );
+  }
+}
+
+class _MetaChip extends StatelessWidget {
+  const _MetaChip({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      avatar: Icon(icon, size: 16),
+      label: Text(label),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+  }
+}
+
+class _AssigneeSummaryChip extends ConsumerWidget {
+  const _AssigneeSummaryChip({required this.userId});
+
+  final String userId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref
+        .watch(userByIdProvider(userId))
+        .maybeWhen(
+          data: (value) => value,
+          orElse: () => null,
+        );
+    final label = user?.fullName ?? userId;
+
+    return Chip(
+      avatar: CircleAvatar(
+        child: Text(label.characters.first.toUpperCase()),
+      ),
+      label: Text(label),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+  }
+}
+
+class _TaskEditDialog extends StatefulWidget {
+  const _TaskEditDialog({
+    required this.task,
+    required this.taskTypes,
+  });
+
+  final TaskEntity task;
+  final List<TaskTypeEntity> taskTypes;
+
+  @override
+  State<_TaskEditDialog> createState() => _TaskEditDialogState();
+}
+
+class _TaskEditDialogState extends State<_TaskEditDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
+  late TaskPriority _priority;
+  String? _taskTypeId;
+  String? _titleError;
+  String? _dateError;
+  DateTime? _startDate;
+  DateTime? _dueDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.task.title);
+    _descriptionController = TextEditingController(
+      text: widget.task.description ?? '',
+    );
+    _priority = widget.task.priority;
+    _startDate = widget.task.startDate;
+    _dueDate = widget.task.dueDate;
+    _taskTypeId =
+        widget.taskTypes.any(
+          (type) => type.id == widget.task.taskTypeId,
+        )
+        ? widget.task.taskTypeId
+        : null;
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Редактировать задачу'),
+      content: SizedBox(
+        width: 520,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _titleController,
+                autofocus: true,
+                textInputAction: TextInputAction.next,
+                decoration: InputDecoration(
+                  labelText: 'Название',
+                  prefixIcon: const Icon(Icons.task_alt_outlined),
+                  errorText: _titleError,
+                ),
+                onChanged: (_) {
+                  if (_titleError != null) {
+                    setState(() => _titleError = null);
+                  }
+                },
+              ),
+              SizedBox(height: context.spacing.md),
+              TextField(
+                controller: _descriptionController,
+                minLines: 3,
+                maxLines: 6,
+                decoration: const InputDecoration(
+                  labelText: 'Описание',
+                  alignLabelWithHint: true,
+                  prefixIcon: Icon(Icons.notes_outlined),
+                ),
+              ),
+              SizedBox(height: context.spacing.md),
+              DropdownButtonFormField<TaskPriority>(
+                initialValue: _priority,
+                items: [
+                  for (final priority in TaskPriority.values)
+                    DropdownMenuItem<TaskPriority>(
+                      value: priority,
+                      child: Text(_priorityLabel(priority)),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => _priority = value);
+                },
+                decoration: const InputDecoration(
+                  labelText: 'Приоритет',
+                  prefixIcon: Icon(Icons.flag_outlined),
+                ),
+              ),
+              SizedBox(height: context.spacing.md),
+              DropdownButtonFormField<String?>(
+                initialValue: _taskTypeId,
+                items: [
+                  const DropdownMenuItem<String?>(
+                    child: Text('Без типа'),
+                  ),
+                  for (final type in widget.taskTypes)
+                    DropdownMenuItem<String?>(
+                      value: type.id,
+                      child: Text(type.name, overflow: TextOverflow.ellipsis),
+                    ),
+                ],
+                onChanged: (value) => setState(() => _taskTypeId = value),
+                decoration: const InputDecoration(
+                  labelText: 'Тип задачи',
+                  prefixIcon: Icon(Icons.category_outlined),
+                ),
+              ),
+              SizedBox(height: context.spacing.md),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Даты',
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+              ),
+              SizedBox(height: context.spacing.sm),
+              Wrap(
+                spacing: context.spacing.sm,
+                runSpacing: context.spacing.sm,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => _pickDate(isStartDate: true),
+                    icon: const Icon(Icons.event_available_outlined),
+                    label: Text(
+                      _startDate == null
+                          ? 'Дата постановки'
+                          : 'Поставлена: ${_formatShortDate(_startDate!)}',
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => _pickDate(isStartDate: false),
+                    icon: const Icon(Icons.event_busy_outlined),
+                    label: Text(
+                      _dueDate == null
+                          ? 'Дедлайн'
+                          : 'Дедлайн: ${_formatShortDate(_dueDate!)}',
+                    ),
+                  ),
+                  if (_startDate != null || _dueDate != null)
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _startDate = null;
+                          _dueDate = null;
+                          _dateError = null;
+                        });
+                      },
+                      icon: const Icon(Icons.clear_rounded),
+                      label: const Text('Очистить'),
+                    ),
+                ],
+              ),
+              if (_dateError != null) ...[
+                SizedBox(height: context.spacing.xs),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _dateError!,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              ],
+              SizedBox(height: context.spacing.md),
+              Divider(color: Theme.of(context).colorScheme.outlineVariant),
+              SizedBox(height: context.spacing.sm),
+              AssignedUsersSection(taskId: widget.task.id),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          onPressed: _submit,
+          child: const Text('Сохранить'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickDate({required bool isStartDate}) async {
+    final now = DateTime.now();
+    final initialDate = isStartDate
+        ? _startDate ?? _dueDate ?? now
+        : _dueDate ?? _startDate ?? now;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(now.year - 5),
+      lastDate: DateTime(now.year + 10),
+      helpText: isStartDate ? 'Дата постановки задачи' : 'Дедлайн',
+    );
+    if (picked == null) return;
+    if (!mounted) return;
+
+    setState(() {
+      if (isStartDate) {
+        _startDate = picked;
+      } else {
+        _dueDate = picked;
+      }
+      _dateError = null;
+    });
+  }
+
+  void _submit() {
+    final title = _titleController.text.trim();
+    if (title.isEmpty) {
+      setState(() => _titleError = 'Введите название задачи');
+      return;
+    }
+    if (_startDate != null &&
+        _dueDate != null &&
+        _dateOnly(_dueDate!).isBefore(_dateOnly(_startDate!))) {
+      setState(() {
+        _dateError = 'Дедлайн не может быть раньше даты постановки';
+      });
+      return;
+    }
+
+    final description = _descriptionController.text.trim();
+    Navigator.of(context).pop(
+      widget.task.copyWith(
+        title: title,
+        description: description.isEmpty ? null : description,
+        priority: _priority,
+        taskTypeId: _taskTypeId,
+        startDate: _startDate == null ? null : _dateOnly(_startDate!),
+        dueDate: _dueDate == null ? null : _dateOnly(_dueDate!),
+      ),
+    );
+  }
+}
+
+DateTime _dateOnly(DateTime value) {
+  final local = value.toLocal();
+  return DateTime(local.year, local.month, local.day);
+}
+
+String _formatShortDate(DateTime value) {
+  final date = _dateOnly(value);
+  return '${date.day}.${date.month.toString().padLeft(2, '0')}.${date.year}';
 }
 
 class _TaskAppearanceDialog extends StatefulWidget {

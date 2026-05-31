@@ -3,9 +3,16 @@ import 'package:drift_flutter/drift_flutter.dart';
 
 import 'tables/board_columns_table.dart';
 import 'tables/board_card_settings_table.dart';
+import 'tables/board_members_table.dart';
 import 'tables/boards_table.dart';
+import 'tables/invitations_table.dart';
+import 'tables/task_assignees_table.dart';
+import 'tables/task_comments_table.dart';
 import 'tables/task_types_table.dart';
 import 'tables/tasks_table.dart';
+import 'tables/users_table.dart';
+import 'tables/workspace_members_table.dart';
+import 'tables/workspaces_table.dart';
 
 part 'app_database.g.dart';
 
@@ -16,6 +23,13 @@ part 'app_database.g.dart';
     TaskTypesTable,
     BoardCardSettingsTable,
     TasksTable,
+    UsersTable,
+    WorkspacesTable,
+    WorkspaceMembersTable,
+    BoardMembersTable,
+    TaskAssigneesTable,
+    TaskCommentsTable,
+    InvitationsTable,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -34,7 +48,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration {
@@ -131,6 +145,89 @@ class AppDatabase extends _$AppDatabase {
         if (from < 7) {
           await migrator.addColumn(tasksTable, tasksTable.cardBackgroundColor);
           await migrator.addColumn(tasksTable, tasksTable.cardTextColor);
+        }
+        if (from < 8) {
+          await migrator.createTable(usersTable);
+          await migrator.createTable(workspacesTable);
+          await migrator.createTable(workspaceMembersTable);
+          await migrator.createTable(boardMembersTable);
+          await migrator.createTable(taskAssigneesTable);
+          await migrator.createTable(taskCommentsTable);
+          await migrator.createTable(invitationsTable);
+          await migrator.addColumn(boardsTable, boardsTable.workspaceId);
+          await customStatement('''
+            INSERT OR IGNORE INTO workspaces_table (
+              id,
+              name,
+              owner_id,
+              created_at,
+              updated_at,
+              is_synced,
+              sync_action
+            )
+            SELECT
+              'default-workspace-' || owner_id,
+              'Личное пространство',
+              owner_id,
+              MIN(created_at),
+              MAX(updated_at),
+              0,
+              'create'
+            FROM boards_table
+            WHERE workspace_id IS NULL
+              AND deleted_at IS NULL
+            GROUP BY owner_id
+          ''');
+          await customStatement('''
+            UPDATE boards_table
+            SET workspace_id = 'default-workspace-' || owner_id
+            WHERE workspace_id IS NULL
+          ''');
+          await customStatement('''
+            INSERT OR IGNORE INTO workspace_members_table (
+              id,
+              workspace_id,
+              user_id,
+              role,
+              joined_at,
+              is_synced,
+              sync_action
+            )
+            SELECT
+              workspace_id || ':' || owner_id,
+              workspace_id,
+              owner_id,
+              'owner',
+              created_at,
+              0,
+              'create'
+            FROM boards_table
+            WHERE workspace_id IS NOT NULL
+          ''');
+          await customStatement('''
+            INSERT OR IGNORE INTO board_members_table (
+              id,
+              board_id,
+              user_id,
+              role,
+              joined_at,
+              is_synced,
+              sync_action
+            )
+            SELECT
+              id || ':' || owner_id,
+              id,
+              owner_id,
+              'admin',
+              created_at,
+              0,
+              'create'
+            FROM boards_table
+            WHERE deleted_at IS NULL
+          ''');
+        }
+        if (from < 9) {
+          await migrator.addColumn(usersTable, usersTable.position);
         }
       },
       beforeOpen: (details) async {

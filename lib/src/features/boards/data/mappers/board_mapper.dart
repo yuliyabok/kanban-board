@@ -7,6 +7,7 @@ extension BoardRowMapper on BoardsTableData {
   BoardEntity toEntity() => BoardEntity(
     id: id,
     ownerId: ownerId,
+    workspaceId: workspaceId,
     title: title,
     description: description,
     createdAt: createdAt,
@@ -21,6 +22,7 @@ extension BoardEntityMapper on BoardEntity {
       BoardsTableCompanion.insert(
         id: id,
         ownerId: ownerId,
+        workspaceId: Value(workspaceId),
         title: title,
         description: Value(description),
         createdAt: createdAt,
@@ -33,6 +35,7 @@ extension BoardEntityMapper on BoardEntity {
   Map<String, Object?> toApiJson() => {
     'id': id,
     'ownerId': ownerId,
+    'workspaceId': workspaceId,
     'title': title,
     'description': description,
     'createdAt': createdAt.toIso8601String(),
@@ -44,6 +47,7 @@ extension BoardEntityMapper on BoardEntity {
 BoardEntity boardFromApiJson(Map<String, dynamic> json) => BoardEntity(
   id: json['id'] as String,
   ownerId: json['ownerId'] as String,
+  workspaceId: json['workspaceId'] as String?,
   title: json['title'] as String,
   description: json['description'] as String?,
   createdAt: DateTime.parse(json['createdAt'] as String),
