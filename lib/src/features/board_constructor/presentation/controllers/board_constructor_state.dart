@@ -1,21 +1,5 @@
+import '../../application/deleted_column_task_plan.dart';
 import '../../../columns/domain/entities/board_column_entity.dart';
-
-enum ColumnTaskDeleteAction {
-  deleteTasks,
-  transferTasks,
-}
-
-final class DeletedColumnTaskPlan {
-  const DeletedColumnTaskPlan.deleteTasks() : transferTargetColumnId = null;
-
-  const DeletedColumnTaskPlan.transferTasks(this.transferTargetColumnId);
-
-  final String? transferTargetColumnId;
-
-  ColumnTaskDeleteAction get action => transferTargetColumnId == null
-      ? ColumnTaskDeleteAction.deleteTasks
-      : ColumnTaskDeleteAction.transferTasks;
-}
 
 final class BoardConstructorState {
   const BoardConstructorState({

@@ -72,7 +72,7 @@ Current data model:
 
 ## Architecture
 
-- Clean Architecture inside feature modules
+- Feature-first Clean Architecture inside feature modules
 - Riverpod for dependency injection and state
 - Drift for local persistence
 - GoRouter for navigation
@@ -80,10 +80,20 @@ Current data model:
 - WebSocket abstraction for future realtime sync
 - Freezed and `json_serializable` for immutable entities and DTOs
 
+The board/task flow has an explicit application layer. Presentation reads
+`BoardViewState` and dispatches command services; filtering, grouping, task
+movement, reordering, and constructor commit orchestration live outside
+widgets.
+
 Feature layout:
 
 ```text
 lib/src/features/<feature>/
+  application/
+    commands/
+    queries/
+    services/
+    state/
   data/
     datasources/
     dto/
@@ -99,6 +109,21 @@ lib/src/features/<feature>/
     providers/
     widgets/
 ```
+
+Layer intent:
+
+- `domain`: entities, repository contracts, value objects, and business
+  policies without Flutter/Drift/Dio dependencies.
+- `application`: use-case orchestration, board projections, command services,
+  and screen state models.
+- `data`: Drift/API datasources, DTOs, mappers, and offline-first repository
+  implementations.
+- `presentation`: widgets, dialogs, input controllers, and Riverpod UI wiring.
+
+`lib/src/core/sync/` also contains the first outbox contracts
+(`SyncOperation`, `SyncOutbox`, conflict resolver) for the future backend sync
+worker. Current repositories still keep the transitional `isSynced/syncAction`
+metadata until the outbox is persisted in Drift.
 
 ## Routes
 

@@ -5,7 +5,7 @@ import '../../../../../core/theme/app_breakpoints.dart';
 import '../../../../../core/theme/app_icons.dart';
 import '../../../../app/theme/app_design_tokens.dart';
 import '../../../board_settings/domain/entities/board_card_settings.dart';
-import '../../../task_types/domain/entities/task_type_entity.dart';
+import '../../application/state/task_view_model.dart';
 import '../../domain/entities/task_entity.dart';
 import 'task_card/task_card.dart';
 
@@ -13,9 +13,7 @@ class BoardColumnView extends StatelessWidget {
   const BoardColumnView({
     required this.title,
     required this.tasks,
-    required this.allTasks,
     required this.settings,
-    required this.taskTypes,
     required this.onToggleTask,
     required this.onDeleteTask,
     required this.onAddSubtask,
@@ -29,15 +27,13 @@ class BoardColumnView extends StatelessWidget {
   });
 
   final String title;
-  final List<TaskEntity> tasks;
-  final List<TaskEntity> allTasks;
+  final List<TaskViewModel> tasks;
   final BoardCardSettings settings;
-  final List<TaskTypeEntity> taskTypes;
   final ValueChanged<String> onToggleTask;
   final ValueChanged<String> onDeleteTask;
   final ValueChanged<TaskEntity> onAddSubtask;
   final ValueChanged<TaskEntity> onToggleSubtask;
-  final ValueChanged<TaskEntity> onOpenTask;
+  final ValueChanged<TaskViewModel> onOpenTask;
   final VoidCallback onAddTask;
   final ValueChanged<TaskEntity> onMoveTaskHere;
   final void Function(int oldIndex, int newIndex) onReorderTask;
@@ -142,20 +138,8 @@ class BoardColumnView extends StatelessWidget {
                         padding: EdgeInsets.all(context.spacing.sm),
                         itemCount: tasks.length,
                         itemBuilder: (context, index) {
-                          final task = tasks[index];
-                          final parentTask = task.parentTaskId == null
-                              ? null
-                              : allTasks
-                                    .where(
-                                      (item) => item.id == task.parentTaskId,
-                                    )
-                                    .firstOrNull;
-                          final subtasks = allTasks
-                              .where((item) => item.parentTaskId == task.id)
-                              .toList(growable: false);
-                          final taskType = taskTypes
-                              .where((type) => type.id == task.taskTypeId)
-                              .firstOrNull;
+                          final viewModel = tasks[index];
+                          final task = viewModel.task;
                           final card = Padding(
                             key: ValueKey(task.id),
                             padding: EdgeInsets.only(
@@ -164,11 +148,11 @@ class BoardColumnView extends StatelessWidget {
                             child: TaskCard(
                               index: index,
                               task: task,
-                              parentTask: parentTask,
-                              subtasks: subtasks,
+                              parentTask: viewModel.parentTask,
+                              subtasks: viewModel.subtasks,
                               settings: settings,
-                              taskType: taskType,
-                              onOpen: () => onOpenTask(task),
+                              taskType: viewModel.taskType,
+                              onOpen: () => onOpenTask(viewModel),
                               onToggle: () => onToggleTask(task.id),
                               onDelete: () => onDeleteTask(task.id),
                               onAddSubtask: () => onAddSubtask(task),

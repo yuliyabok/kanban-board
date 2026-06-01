@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/providers/core_providers.dart';
+import '../../application/services/task_command_service.dart';
 import '../../data/datasources/task_local_datasource.dart';
 import '../../data/datasources/task_remote_datasource.dart';
 import '../../data/repositories/offline_first_task_repository.dart';
@@ -33,6 +34,10 @@ final taskRepositoryProvider = Provider<TaskRepository>((ref) {
     remoteDataSource: ref.watch(taskRemoteDataSourceProvider),
     uuid: ref.watch(uuidProvider),
   );
+});
+
+final taskCommandServiceProvider = Provider<TaskCommandService>((ref) {
+  return DefaultTaskCommandService(ref.watch(taskRepositoryProvider));
 });
 
 final watchBoardTasksProvider = Provider<WatchBoardTasks>((ref) {

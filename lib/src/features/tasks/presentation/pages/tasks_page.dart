@@ -18,29 +18,31 @@ import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../board_members/presentation/widgets/board_members_panel.dart';
 import '../../../board_constructor/presentation/controllers/board_constructor_controller.dart';
 import '../../../board_constructor/presentation/controllers/board_constructor_state.dart';
+import '../../../board_constructor/application/deleted_column_task_plan.dart';
 import '../../../board_constructor/presentation/widgets/constructor_appearance_panel.dart';
 import '../../../board_constructor/presentation/widgets/constructor_column_card.dart';
 import '../../../board_constructor/presentation/widgets/constructor_task_types_panel.dart';
 import '../../../board_constructor/presentation/widgets/constructor_toolbar.dart';
 import '../../../board_settings/domain/entities/board_card_settings.dart';
-import '../../../board_settings/presentation/providers/board_card_settings_providers.dart';
 import '../../../board_settings/presentation/widgets/task_card_settings_panel.dart';
 import '../../../columns/domain/entities/board_column_entity.dart';
-import '../../../columns/presentation/providers/column_providers.dart';
 import '../../../task_assignees/domain/entities/task_assignee_entity.dart';
 import '../../../task_types/domain/entities/task_type_entity.dart';
 import '../../../task_types/presentation/controllers/task_types_controller.dart';
-import '../../../task_types/presentation/providers/task_type_providers.dart';
 import '../../../task_assignees/presentation/providers/task_assignee_providers.dart';
 import '../../../task_assignees/presentation/widgets/assigned_users_section.dart';
 import '../../../task_assignees/presentation/widgets/my_tasks_filter.dart';
 import '../../../comments/presentation/widgets/task_comments_section.dart';
 import '../../../comments/presentation/providers/task_comment_providers.dart';
 import '../../../users/presentation/providers/user_providers.dart';
+import '../../application/queries/board_view_query.dart';
+import '../../application/state/board_view_state.dart';
+import '../../application/state/task_view_model.dart';
 import '../../domain/entities/task_entity.dart';
+import '../../domain/value_objects/task_filter.dart';
 import '../../domain/value_objects/task_enums.dart';
 import '../controllers/tasks_controller.dart';
-import '../providers/task_providers.dart';
+import '../providers/board_view_providers.dart';
 import '../widgets/board_column_view.dart';
 import '../widgets/task_card/subtask_editor.dart';
 import '../widgets/task_card/subtask_list.dart';
@@ -89,10 +91,6 @@ class _TasksPageState extends ConsumerState<TasksPage> {
 
   @override
   Widget build(BuildContext context) {
-    final tasksState = ref.watch(boardTasksProvider(widget.boardId));
-    final columnsState = ref.watch(boardColumnsProvider(widget.boardId));
-    final settingsState = ref.watch(boardCardSettingsProvider(widget.boardId));
-    final taskTypesState = ref.watch(taskTypesProvider(widget.boardId));
     final session = ref
         .watch(authControllerProvider)
         .maybeWhen(data: (value) => value, orElse: () => null);
@@ -109,6 +107,20 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                 data: (value) => value,
                 orElse: () => const <String>{},
               );
+    final boardViewState = ref.watch(
+      boardViewProvider(
+        BoardViewArgs(
+          boardId: widget.boardId,
+          filters: TaskFilter(
+            query: _query,
+            myTaskIds: myTaskIds,
+            myTasksOnly: _myTasksOnly,
+            inProgressOnly: _inProgressOnly,
+            priority: _priorityFilter,
+          ),
+        ),
+      ),
+    );
     final constructorState = ref.watch(
       boardConstructorControllerProvider(widget.boardId),
     );
@@ -146,52 +158,19 @@ class _TasksPageState extends ConsumerState<TasksPage> {
           loading: () => _buildShell(content: const _TasksSkeleton()),
           error: (error, stackTrace) =>
               _buildShell(content: Center(child: Text(error.toString()))),
-          data: (constructor) => settingsState.when(
+          data: (constructor) => boardViewState.when(
             loading: () => _buildShell(content: const _TasksSkeleton()),
             error: (error, stackTrace) =>
                 _buildShell(content: Center(child: Text(error.toString()))),
-            data: (settings) => taskTypesState.when(
-              loading: () => _buildShell(content: const _TasksSkeleton()),
-              error: (error, stackTrace) =>
-                  _buildShell(content: Center(child: Text(error.toString()))),
-              data: (taskTypes) => columnsState.when(
-                loading: () => _buildShell(content: const _TasksSkeleton()),
-                error: (error, stackTrace) =>
-                    _buildShell(content: Center(child: Text(error.toString()))),
-                data: (columns) => tasksState.when(
-                  loading: () => _buildShell(content: const _TasksSkeleton()),
-                  error: (error, stackTrace) => _buildShell(
-                    content: Center(child: Text(error.toString())),
-                  ),
-                  data: (tasks) {
-                    final hasActiveFilters =
-                        _query.trim().isNotEmpty ||
-                        _myTasksOnly ||
-                        _inProgressOnly ||
-                        _priorityFilter != null;
-                    final filteredTasks = _filterTasks(
-                      tasks,
-                      myTaskIds: myTaskIds,
-                    );
-                    return _buildShell(
-                      constructor: constructor,
-                      firstColumnId: columns.firstOrNull?.id,
-                      settings: settings,
-                      taskTypes: taskTypes,
-                      content: _buildContent(
-                        context: context,
-                        constructor: constructor,
-                        columns: columns,
-                        tasks: filteredTasks,
-                        allTasks: tasks,
-                        settings: settings,
-                        taskTypes: taskTypes,
-                        hasActiveSearch: _query.trim().isNotEmpty,
-                        hasActiveFilters: hasActiveFilters,
-                      ),
-                    );
-                  },
-                ),
+            data: (boardView) => _buildShell(
+              constructor: constructor,
+              firstColumnId: boardView.rawColumns.firstOrNull?.id,
+              settings: boardView.settings,
+              taskTypes: boardView.taskTypes,
+              content: _buildContent(
+                context: context,
+                constructor: constructor,
+                boardView: boardView,
               ),
             ),
           ),
@@ -287,18 +266,12 @@ class _TasksPageState extends ConsumerState<TasksPage> {
   Widget _buildContent({
     required BuildContext context,
     required BoardConstructorState constructor,
-    required List<BoardColumnEntity> columns,
-    required List<TaskEntity> tasks,
-    required List<TaskEntity> allTasks,
-    required BoardCardSettings settings,
-    required List<TaskTypeEntity> taskTypes,
-    required bool hasActiveSearch,
-    required bool hasActiveFilters,
+    required BoardViewState boardView,
   }) {
     final constructorController = ref.read(
       boardConstructorControllerProvider(widget.boardId).notifier,
     );
-    final firstColumnId = columns.firstOrNull?.id;
+    final firstColumnId = boardView.rawColumns.firstOrNull?.id;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,7 +290,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
               children: [
                 _FilterChip(
                   label: 'Все',
-                  selected: !hasActiveFilters,
+                  selected: !boardView.hasActiveFilters,
                   onSelected: (_) => _resetFilters(),
                 ),
                 _FilterChip(
@@ -339,7 +312,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                     setState(() => _priorityFilter = priority);
                   },
                 ),
-                if (hasActiveSearch)
+                if (boardView.hasActiveSearch)
                   ActionChip(
                     label: const Text('Сбросить поиск'),
                     onPressed: () {
@@ -347,7 +320,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                       setState(() => _query = '');
                     },
                   ),
-                if (hasActiveFilters)
+                if (boardView.hasActiveFilters)
                   ActionChip(
                     avatar: const Icon(Icons.filter_alt_off_outlined),
                     label: const Text('Сбросить фильтры'),
@@ -376,7 +349,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
             columnId: _createColumnId ?? firstColumnId,
             controller: _titleController,
             focusNode: _createTaskFocusNode,
-            taskTypes: taskTypes,
+            taskTypes: boardView.taskTypes,
           ),
           SizedBox(height: context.spacing.lg),
         ],
@@ -384,11 +357,11 @@ class _TasksPageState extends ConsumerState<TasksPage> {
           child: constructor.isConstructorMode
               ? _buildConstructorBoard(
                   constructor,
-                  allTasks,
-                  taskTypes,
-                  settings,
+                  boardView.allTasks,
+                  boardView.taskTypes,
+                  boardView.settings,
                 )
-              : tasks.isEmpty && hasActiveSearch
+              : boardView.filteredTasks.isEmpty && boardView.hasActiveSearch
               ? AppEmptyState(
                   icon: AppIcons.search,
                   title: 'Ничего не найдено',
@@ -401,7 +374,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                     child: const Text('Сбросить'),
                   ),
                 )
-              : tasks.isEmpty && hasActiveFilters
+              : boardView.filteredTasks.isEmpty && boardView.hasActiveFilters
               ? AppEmptyState(
                   icon: Icons.filter_alt_off_outlined,
                   title: 'Нет задач по фильтрам',
@@ -414,29 +387,23 @@ class _TasksPageState extends ConsumerState<TasksPage> {
               : Row(
                   children: [
                     Expanded(
-                      child: _buildBoard(
-                        columns,
-                        tasks,
-                        allTasks,
-                        settings,
-                        taskTypes,
-                      ),
+                      child: _buildBoard(boardView),
                     ),
                     if (_selectedTask != null &&
                         AppBreakpoints.of(context).isDesktop) ...[
                       SizedBox(width: context.spacing.lg),
                       _TaskDetailsPanel(
                         task:
-                            allTasks
+                            boardView.allTasks
                                 .where((task) => task.id == _selectedTask!.id)
                                 .firstOrNull ??
                             _selectedTask!,
-                        subtasks: allTasks
+                        subtasks: boardView.allTasks
                             .where(
                               (task) => task.parentTaskId == _selectedTask!.id,
                             )
                             .toList(growable: false),
-                        taskTypes: taskTypes,
+                        taskTypes: boardView.taskTypes,
                         onClose: () => setState(() => _selectedTask = null),
                       ),
                     ],
@@ -445,35 +412,6 @@ class _TasksPageState extends ConsumerState<TasksPage> {
         ),
       ],
     );
-  }
-
-  List<TaskEntity> _filterTasks(
-    List<TaskEntity> tasks, {
-    required Set<String> myTaskIds,
-  }) {
-    final query = _query.trim().toLowerCase();
-    Iterable<TaskEntity> scoped = _myTasksOnly
-        ? tasks.where((task) => myTaskIds.contains(task.id))
-        : tasks;
-
-    if (_inProgressOnly) {
-      scoped = scoped.where((task) => !task.isCompleted);
-    }
-
-    final priority = _priorityFilter;
-    if (priority != null) {
-      scoped = scoped.where((task) => task.priority == priority);
-    }
-
-    if (query.isEmpty) return scoped.toList(growable: false);
-
-    return scoped
-        .where((task) {
-          final description = task.description?.toLowerCase() ?? '';
-          return task.title.toLowerCase().contains(query) ||
-              description.contains(query);
-        })
-        .toList(growable: false);
   }
 
   void _resetFilters() {
@@ -699,36 +637,24 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     );
   }
 
-  Widget _buildBoard(
-    List<BoardColumnEntity> columns,
-    List<TaskEntity> tasks,
-    List<TaskEntity> allTasks,
-    BoardCardSettings settings,
-    List<TaskTypeEntity> taskTypes,
-  ) {
-    if (tasks.isEmpty && columns.isEmpty) {
+  Widget _buildBoard(BoardViewState boardView) {
+    if (boardView.isEmpty) {
       return const _EmptyTasks();
     }
 
-    if (columns.isEmpty) {
-      return _buildFlatTaskList(tasks);
+    if (boardView.rawColumns.isEmpty) {
+      return _buildFlatTaskList(boardView);
     }
 
-    final unassignedTasks = tasks
-        .where((task) => task.columnId == null)
-        .toList(growable: false);
-
     final columnItems = [
-      for (final column in columns)
+      for (final column in boardView.columns)
+        (title: column.title, columnId: column.columnId, tasks: column.tasks),
+      if (boardView.unassignedTasks.isNotEmpty)
         (
-          title: column.title,
-          columnId: column.id,
-          tasks: tasks
-              .where((task) => task.columnId == column.id)
-              .toList(growable: false),
+          title: 'Без статуса',
+          columnId: null,
+          tasks: boardView.unassignedTasks,
         ),
-      if (unassignedTasks.isNotEmpty)
-        (title: 'Без статуса', columnId: null, tasks: unassignedTasks),
     ];
 
     return LayoutBuilder(
@@ -746,21 +672,19 @@ class _TasksPageState extends ConsumerState<TasksPage> {
           ({
             String title,
             String? columnId,
-            List<TaskEntity> tasks,
+            List<TaskViewModel> tasks,
           })
           item,
         ) {
           return BoardColumnView(
             title: item.title,
             tasks: item.tasks,
-            allTasks: allTasks,
-            settings: settings,
-            taskTypes: taskTypes,
+            settings: boardView.settings,
             width: columnWidth,
             onToggleTask: _toggleTask,
             onDeleteTask: _deleteTask,
             onAddTask: () => unawaited(
-              _openCreateTaskForColumn(item.columnId, taskTypes),
+              _openCreateTaskForColumn(item.columnId, boardView.taskTypes),
             ),
             onMoveTaskHere: (task) {
               unawaited(
@@ -775,7 +699,9 @@ class _TasksPageState extends ConsumerState<TasksPage> {
             },
             onAddSubtask: _openAddSubtask,
             onToggleSubtask: _toggleSubtask,
-            onOpenTask: _openTaskDetails,
+            onOpenTask: (viewModel) {
+              unawaited(_openTaskDetails(viewModel, boardView.taskTypes));
+            },
             onReorderTask: (oldIndex, newIndex) {
               unawaited(
                 ref
@@ -813,12 +739,24 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     );
   }
 
-  Widget _buildFlatTaskList(List<TaskEntity> tasks) {
-    final settings =
-        ref.watch(boardCardSettingsProvider(widget.boardId)).asData?.value ??
-        BoardCardSettings.defaults(widget.boardId);
-    final taskTypes =
-        ref.watch(taskTypesProvider(widget.boardId)).asData?.value ?? const [];
+  Widget _buildFlatTaskList(BoardViewState boardView) {
+    final tasks = [
+      for (final task in boardView.filteredTasks)
+        TaskViewModel(
+          task: task,
+          parentTask: task.parentTaskId == null
+              ? null
+              : boardView.allTasks
+                    .where((item) => item.id == task.parentTaskId)
+                    .firstOrNull,
+          subtasks: boardView.allTasks
+              .where((item) => item.parentTaskId == task.id)
+              .toList(growable: false),
+          taskType: boardView.taskTypes
+              .where((type) => type.id == task.taskTypeId)
+              .firstOrNull,
+        ),
+    ];
     return ReorderableListView.builder(
       buildDefaultDragHandles: false,
       itemCount: tasks.length,
@@ -834,25 +772,21 @@ class _TasksPageState extends ConsumerState<TasksPage> {
         );
       },
       itemBuilder: (context, index) {
-        final task = tasks[index];
-        final parentTask = task.parentTaskId == null
-            ? null
-            : tasks.where((item) => item.id == task.parentTaskId).firstOrNull;
+        final viewModel = tasks[index];
+        final task = viewModel.task;
         return Padding(
           key: ValueKey(task.id),
           padding: EdgeInsets.only(bottom: context.spacing.sm),
           child: TaskCard(
             index: index,
             task: task,
-            parentTask: parentTask,
-            subtasks: tasks
-                .where((item) => item.parentTaskId == task.id)
-                .toList(growable: false),
-            settings: settings,
-            taskType: taskTypes
-                .where((type) => type.id == task.taskTypeId)
-                .firstOrNull,
-            onOpen: () => _openTaskDetails(task),
+            parentTask: viewModel.parentTask,
+            subtasks: viewModel.subtasks,
+            settings: boardView.settings,
+            taskType: viewModel.taskType,
+            onOpen: () => unawaited(
+              _openTaskDetails(viewModel, boardView.taskTypes),
+            ),
             onToggle: () => _toggleTask(task.id),
             onDelete: () => _deleteTask(task.id),
             onAddSubtask: () => _openAddSubtask(task),
@@ -900,15 +834,11 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     unawaited(ref.read(tasksControllerProvider.notifier).delete(taskId));
   }
 
-  Future<void> _openTaskDetails(TaskEntity task) async {
-    final tasks =
-        ref.read(boardTasksProvider(widget.boardId)).asData?.value ??
-        const <TaskEntity>[];
-    final subtasks = tasks
-        .where((item) => item.parentTaskId == task.id)
-        .toList(growable: false);
-    final taskTypes =
-        ref.read(taskTypesProvider(widget.boardId)).asData?.value ?? const [];
+  Future<void> _openTaskDetails(
+    TaskViewModel viewModel,
+    List<TaskTypeEntity> taskTypes,
+  ) async {
+    final task = viewModel.task;
     if (!AppBreakpoints.of(context).isDesktop) {
       await showModalBottomSheet<void>(
         context: context,
@@ -923,7 +853,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
           ),
           child: _TaskDetailsPanel(
             task: task,
-            subtasks: subtasks,
+            subtasks: viewModel.subtasks,
             taskTypes: taskTypes,
           ),
         ),
@@ -1418,19 +1348,8 @@ class _TaskDetailsPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final liveTasks = ref
-        .watch(boardTasksProvider(task.boardId))
-        .maybeWhen(
-          data: (items) => items,
-          orElse: () => null,
-        );
-    final currentTask =
-        liveTasks?.where((item) => item.id == task.id).firstOrNull ?? task;
-    final currentSubtasks =
-        liveTasks
-            ?.where((item) => item.parentTaskId == currentTask.id)
-            .toList(growable: false) ??
-        subtasks;
+    final currentTask = task;
+    final currentSubtasks = subtasks;
     final commentCount =
         ref
             .watch(taskCommentsProvider(currentTask.id))

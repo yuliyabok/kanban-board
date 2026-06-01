@@ -22,10 +22,10 @@ final class LocalFirstSyncManager implements SyncManager {
     required AppDatabase database,
     required ApiClient apiClient,
     required RealtimeConnection realtimeConnection,
-  })  : _database = database,
-        _apiClient = apiClient,
-        _realtimeConnection = realtimeConnection,
-        _statusController = StreamController<SyncStatus>.broadcast();
+  }) : _database = database,
+       _apiClient = apiClient,
+       _realtimeConnection = realtimeConnection,
+       _statusController = StreamController<SyncStatus>.broadcast();
 
   final AppDatabase _database;
   final ApiClient _apiClient;

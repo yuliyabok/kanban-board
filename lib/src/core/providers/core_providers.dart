@@ -8,6 +8,7 @@ import '../storage/secure_storage.dart';
 import '../sync/realtime_connection.dart';
 import '../sync/realtime_service.dart';
 import '../sync/sync_manager.dart';
+import '../sync/sync_outbox.dart';
 
 final appConfigProvider = Provider<AppConfig>((ref) {
   return AppConfig.development();
@@ -38,6 +39,10 @@ final realtimeServiceProvider = Provider<RealtimeService>((ref) {
   final service = MockRealtimeService();
   ref.onDispose(service.dispose);
   return service;
+});
+
+final syncOutboxProvider = Provider<SyncOutbox>((ref) {
+  return MemorySyncOutbox();
 });
 
 final syncManagerProvider = Provider<SyncManager>((ref) {
