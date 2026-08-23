@@ -1,7 +1,34 @@
+<!-- Главная справка monorepo: Flutter-клиент, Dart-сервер и shared contracts. -->
+
 # Kanban Board
 
 Flutter kanban board with offline-first local data, modular feature slices, and
 an in-progress board constructor.
+
+## Monorepo Layout
+
+The repository is now split into separate app/server packages:
+
+- `apps/kanban_app/` contains the Flutter client;
+- `apps/kanban_server/` contains the Dart server;
+- `packages/kanban_contracts/` contains shared API routes and wire DTOs.
+- the repository root contains orchestration files, docs, Docker Compose, and
+  the root `Makefile`.
+
+Useful root commands:
+
+```bash
+make get
+make analyze
+make test
+make server-run
+```
+
+PostgreSQL for local backend development:
+
+```bash
+docker compose up postgres
+```
 
 ## Current Status
 
@@ -22,46 +49,37 @@ What works now:
 
 What is still incomplete:
 
-- real backend configuration for the app out of the box
-- full sync queue and retry worker
-- realtime event processing
+- full sync queue coverage for every entity type
+- durable database-backed delta journal
 - complete CRUD UI for boards and tasks
 - broad automated test coverage
 
 Important note:
 
-- `auth` uses real API endpoints from `AppConfig.development()`
-- `boards`, `tasks`, and `columns` are currently wired to local mock-like
-  remote datasources, so their "remote sync" path is still a placeholder
-- default config points to `https://api.example.local`, so login will not work
-  until a real backend is connected
+- `AppConfig.development()` keeps `RemoteMode.local` as the safe default.
+- `AppConfig.serverDevelopment()` points to `http://localhost:8080` and
+  `ws://localhost:8080/realtime` for local backend development.
+- runtime builds can override config with `--dart-define` values:
+  `KANBAN_REMOTE_MODE`, `KANBAN_API_BASE_URL`, `KANBAN_WS_URL`, and
+  `KANBAN_DATABASE_NAME`.
+- production sync is still incomplete: outbox currently covers tasks, boards,
+  columns, and comments; durable delta storage, broad tombstones, conflict
+  policy, and full realtime merge are future steps.
 
 ## What The Project Consists Of
 
 Top-level application areas:
 
-- `lib/main.dart`: entry point
-- `lib/src/app/`: app bootstrap, router, routes, design tokens, main theme
-- `lib/src/core/`: database, network client, secure storage, sync abstractions,
+- `apps/kanban_app/lib/main.dart`: entry point
+- `apps/kanban_app/lib/src/app/`: app bootstrap, router, routes, tokens, theme
+- `apps/kanban_app/lib/src/core/`: database, network, storage, sync,
   errors, provider wiring
-- `lib/src/features/auth/`: auth entities, use cases, repository, login UI
-- `lib/src/features/boards/`: boards domain, local storage, repository, boards
-  screen
-- `lib/src/features/columns/`: kanban columns domain, local storage,
-  repository, use cases
-- `lib/src/features/board_constructor/`: constructor mode for managing board
-  columns
-- `lib/src/features/tasks/`: task entities, repository, board page, task UI
-- `lib/src/features/task_types/`: board-specific task type setup
-- `lib/src/features/board_settings/`: card and column appearance settings
-- `lib/src/features/workspaces/`: workspace entities, data access, and screens
-- `lib/src/features/board_members/`: board membership and roles
-- `lib/src/features/task_assignees/`: task assignment
-- `lib/src/features/comments/`: task comments
-- `lib/src/features/invitations/`: invite and accept flows
-- `lib/src/features/permissions/`: permission checks
-- `lib/src/shared/ui/`: shared UI helpers used by feature screens
-- `lib/core/`: reusable layout, theme, and widget primitives used by the new UI
+- `apps/kanban_app/lib/src/features/`: feature-first client modules
+- `apps/kanban_app/lib/src/shared/ui/`: shared UI helpers
+- `apps/kanban_app/lib/core/`: reusable layout, theme, and widget primitives
+- `apps/kanban_server/`: HTTP/WebSocket backend, PostgreSQL repositories,
+  migrations, and server tests
+- `packages/kanban_contracts/`: shared routes and wire DTOs
 
 Current data model:
 
@@ -88,7 +106,7 @@ widgets.
 Feature layout:
 
 ```text
-lib/src/features/<feature>/
+apps/kanban_app/lib/src/features/<feature>/
   application/
     commands/
     queries/
@@ -120,10 +138,10 @@ Layer intent:
   implementations.
 - `presentation`: widgets, dialogs, input controllers, and Riverpod UI wiring.
 
-`lib/src/core/sync/` also contains the first outbox contracts
-(`SyncOperation`, `SyncOutbox`, conflict resolver) for the future backend sync
-worker. Current repositories still keep the transitional `isSynced/syncAction`
-metadata until the outbox is persisted in Drift.
+`apps/kanban_app/lib/src/core/sync/` contains the persistent Drift outbox
+(`SyncOperation`, `SyncOutbox`, `SyncActionsTable`) and sync manager. Current
+repositories still keep transitional `isSynced/syncAction` metadata while the
+outbox is expanded across all entity types.
 
 ## Routes
 
@@ -135,7 +153,7 @@ Current routes:
 
 ## Local Database
 
-Drift schema version: `9`
+Drift schema version: `11`
 
 Tables:
 
@@ -151,6 +169,7 @@ Tables:
 - `TaskAssigneesTable`
 - `TaskCommentsTable`
 - `InvitationsTable`
+- `SyncActionsTable`
 
 Web build assets for Drift:
 
@@ -168,37 +187,37 @@ Prerequisites:
 Install dependencies:
 
 ```bash
-flutter pub get
+make get
 ```
 
 Generate code:
 
 ```bash
-dart run build_runner build
+cd apps/kanban_app && dart run build_runner build
 ```
 
 Analyze:
 
 ```bash
-flutter analyze
+make analyze
 ```
 
 Run tests:
 
 ```bash
-flutter test
+make test
 ```
 
 Run web:
 
 ```bash
-flutter run -d chrome
+cd apps/kanban_app && flutter run -d chrome
 ```
 
 Build web:
 
 ```bash
-flutter build web
+cd apps/kanban_app && flutter build web
 ```
 
 ## Backend Contract
@@ -213,10 +232,13 @@ POST /auth/logout
 ```
 
 Configured development values live in
-`lib/src/core/config/app_config.dart`.
+`apps/kanban_app/lib/src/core/config/app_config.dart`.
 
 ## Documentation Files
 
 - `README.md`: high-level overview and current status
-- `ANALYSIS.md`: detailed project breakdown in Russian
 - `agent.md`: maintenance guide for future contributors and agents
+- `docs/architecture_diagrams.md`: visual Mermaid diagrams of app/server,
+  sync, auth, storage, and repository flow
+- `docs/project_for_beginners.md`: Russian walkthrough of how the app,
+  server, contracts, storage, and sync fit together

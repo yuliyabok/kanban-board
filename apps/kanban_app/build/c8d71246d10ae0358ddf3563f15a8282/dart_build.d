@@ -1,0 +1,1 @@
+ /home/yuliya/kanban_board/apps/kanban_app/build/c8d71246d10ae0358ddf3563f15a8282/dart_build_result.json:  /home/yuliya/kanban_board/apps/kanban_app/.dart_tool/package_config.json /home/yuliya/kanban_board/apps/kanban_app/pubspec.yaml /home/yuliya/programs/flutter/bin/cache/dart-sdk/version

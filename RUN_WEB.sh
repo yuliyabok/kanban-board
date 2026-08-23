@@ -5,6 +5,9 @@
 
 set -e
 
+APP_DIR="$(cd "$(dirname "$0")/apps/kanban_app" && pwd)"
+cd "$APP_DIR"
+
 echo "🚀 Building Kanban Board for Web..."
 flutter build web --release
 
@@ -14,6 +17,5 @@ echo ""
 echo "📱 Starting web server on http://localhost:8000"
 echo ""
 
-cd build/web
+cd "$APP_DIR/build/web"
 python3 -m http.server 8000
-

@@ -4,8 +4,9 @@
 
 set -e
 
-PROJECT_DIR="/home/yuliya/kanban_board"
-cd "$PROJECT_DIR"
+REPO_DIR="/home/yuliya/kanban_board"
+APP_DIR="$REPO_DIR/apps/kanban_app"
+cd "$APP_DIR"
 
 echo "🔧 Подготовка окружения для Linux Desktop..."
 
@@ -55,4 +56,4 @@ echo ""
 echo "🚀 Running Linux application..."
 
 # Запускаем собранное приложение
-"$PROJECT_DIR/build/linux/x64/release/bundle/kanban_board"
+"$APP_DIR/build/linux/x64/release/bundle/kanban_board"

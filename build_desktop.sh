@@ -2,8 +2,9 @@
 
 set -e
 
-PROJECT_DIR="/home/yuliya/kanban_board"
-cd "$PROJECT_DIR"
+REPO_DIR="/home/yuliya/kanban_board"
+APP_DIR="$REPO_DIR/apps/kanban_app"
+cd "$APP_DIR"
 
 echo "=========================================="
 echo "   Flutter Desktop Build Script"
@@ -37,7 +38,7 @@ if PATH="$LINKER_DIR:$PATH" flutter build linux --release 2>&1 | tail -20; then
     echo "✅ Сборка успешна!"
     echo ""
     echo "🚀 Запуск приложения..."
-    exec "$PROJECT_DIR/build/linux/x64/release/bundle/kanban_board"
+    exec "$APP_DIR/build/linux/x64/release/bundle/kanban_board"
 else
     echo ""
     echo "⚠️  Сборка Linux failed. Используем Android эмулятор..."

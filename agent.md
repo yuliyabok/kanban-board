@@ -1,209 +1,215 @@
 # Agent Guide
 
-This document describes the current shape of the project for future agents and
-contributors.
+Этот файл нужен будущим разработчикам и агентам как короткая, актуальная карта
+проекта. Если меняется архитектура, схема БД, server API или режимы запуска,
+сначала обновляй этот файл и `README.md`.
 
-## Project Summary
+## Текущее Состояние
 
-`kanban_board` is a Flutter kanban application with:
+Проект разделен как monorepo:
 
-- local offline-first persistence through Drift
-- Riverpod-based dependency wiring
-- feature-oriented Clean Architecture
-- a richer UI layer split between `lib/src/...` and shared primitives in
-  `lib/core/...`
-- a board constructor flow for managing kanban columns
+- `apps/kanban_app/` содержит Flutter client.
+- `apps/kanban_server/` уже содержит Dart backend на `shelf`/`shelf_router`.
+- `packages/kanban_contracts/` содержит общие API routes и DTO для app/server.
+- корень содержит orchestration: `Makefile`, Docker Compose и docs.
+- PostgreSQL используется как серверная БД.
+- Drift остается локальным offline-first кешем Flutter-приложения.
 
-The app is partially product-ready at the local-data layer, but backend sync is
-still incomplete.
+Важно: структурное app/server-разделение выполнено. Полная production sync
+еще не завершена.
 
-## What Exists Today
+## Как Запускать
 
-Implemented modules:
+Установить зависимости всех частей:
 
-- `auth`
-- `boards`
-- `tasks`
-- `columns`
-- `board_constructor`
+```bash
+make get
+```
 
-Implemented infrastructure:
+Запустить PostgreSQL:
 
-- app bootstrap and routing
-- Drift database with three tables
-- secure storage
-- Dio API client
-- WebSocket abstraction
-- sync manager abstraction
-- reusable shell, layout, theme, and widget primitives
+```bash
+docker compose up postgres
+```
 
-## Actual Runtime State
+Запустить сервер:
 
-Be careful not to overstate backend support.
+```bash
+make server-run
+```
 
-- `auth` uses API-backed datasources
-- `boards` currently use `LocalBoardRemoteDataSource`
-- `tasks` currently use `LocalTaskRemoteDataSource`
-- `columns` currently use `LocalColumnRemoteDataSource`
-- `SyncManager` exists, but pending-operation orchestration is still a stub
+Запустить Flutter web:
 
-This means the app has local kanban behavior, but does not yet have end-to-end
-remote collaboration.
+```bash
+cd apps/kanban_app && flutter run -d chrome
+```
 
-## Project Layout
+Проверки:
 
-High-level layout:
+```bash
+make analyze
+make test
+```
+
+## Режимы Клиента
+
+Конфиг находится в `apps/kanban_app/lib/src/core/config/app_config.dart`.
+
+- `RemoteMode.local` — стандартный режим разработки, UI работает через Drift и
+  local/mock remote adapters.
+- `RemoteMode.server` — клиент использует API datasources и sync pull с
+  локального/настоящего сервера.
+
+Для локального backend используй `AppConfig.serverDevelopment()`.
+
+## App Слои
+
+Клиент использует feature-first Clean Architecture:
 
 ```text
-lib/
-  core/                 reusable UI/layout/theme primitives
-  src/
-    app/                bootstrap, router, theme tokens
-    core/               database, network, storage, sync, providers, errors
-    features/
-      auth/
-      boards/
-      columns/
-      board_constructor/
-      tasks/
-    shared/ui/          shared UI helpers
+apps/kanban_app/lib/src/features/<feature>/
+  domain/        сущности, value objects, контракты, use cases
+  application/   команды, query services, projection/state
+  data/          Drift/API datasources, DTO, mappers, repositories
+  presentation/  Riverpod providers/controllers, pages, widgets
 ```
 
-Feature layout convention:
+Инфраструктура клиента:
 
-```text
-lib/src/features/<feature>/
-  data/
-    datasources/
-    dto/
-    mappers/
-    repositories/
-  domain/
-    entities/
-    repositories/
-    usecases/
-  presentation/
-    controllers/
-    pages/
-    providers/
-    widgets/
-```
+- `apps/kanban_app/lib/src/app/` — bootstrap, router, app-level theme.
+- `apps/kanban_app/lib/src/core/config/` — runtime config.
+- `apps/kanban_app/lib/src/core/database/` — Drift database и таблицы.
+- `apps/kanban_app/lib/src/core/network/` — API client и endpoint facade.
+- `apps/kanban_app/lib/src/core/providers/` — главная сборка providers.
+- `apps/kanban_app/lib/src/core/storage/` — secure/device storage.
+- `apps/kanban_app/lib/src/core/sync/` — sync manager, realtime, outbox,
+  server-state puller.
+- `apps/kanban_app/lib/core/` — общий UI-kit, layout, theme primitives.
 
-`board_constructor` is presentation-only for now and coordinates `columns` and
-`tasks`.
+## Server Слои
 
-## Database
+Backend живет в `apps/kanban_server/`.
 
-Current Drift schema version: `3`
+Основные зоны:
 
-Tables:
+- `bin/server.dart` — production/dev entrypoint, конфиг, DB, миграции.
+- `lib/server.dart` — HTTP router и handlers.
+- `lib/src/config/` — env config.
+- `lib/src/database/` — PostgreSQL connection, migrations, health check.
+- `lib/src/auth/` — users, password hashing, JWT, refresh sessions.
+- `lib/src/workspaces/` — workspaces и members.
+- `lib/src/boards/` — boards, columns, task types.
+- `lib/src/tasks/` — tasks, comments, assignees, history.
+- `migrations/` — SQL-миграции PostgreSQL.
+- `test/server_test.dart` — HTTP/in-memory server tests.
 
-- `BoardsTable`
-- `BoardColumnsTable`
-- `TasksTable`
+Сервер сейчас умеет:
 
-Important model detail:
+- auth: register/login/refresh/logout/me;
+- users search;
+- workspaces list/create/members;
+- boards CRUD/members;
+- columns CRUD;
+- task-types CRUD;
+- tasks CRUD;
+- task comments CRUD;
+- task assignees assign/unassign/list;
+- task history list;
+- health, changes summary scaffold, sync delta scaffold.
 
-- tasks now support nullable `columnId`
-- all three tables include `isSynced` and `syncAction`
+## Shared Contracts
 
-When updating schema:
+`packages/kanban_contracts/` — единственный источник правды для wire-DTO и
+строк API routes.
 
-1. Update or add table files in `lib/src/core/database/tables/`
-2. Update `@DriftDatabase(...)`
-3. Increment `schemaVersion`
-4. Add a migration in `onUpgrade`
-5. Run code generation
-6. Run analysis and tests
+Туда уже вынесены:
 
-Codegen command:
+- auth/session/user DTO;
+- workspace DTO;
+- board/column/task-type DTO;
+- task/comment/assignee DTO;
+- task history DTO;
+- changes summary DTO;
+- sync delta DTO;
+- realtime event DTO;
+- API error DTO;
+- `KanbanApiRoutes`.
+
+Если app и server должны обмениваться JSON, сначала добавляй/меняй контракт в
+этом пакете, затем адаптируй client/server.
+
+## Drift База Клиента
+
+Актуальная schema version указана в
+`apps/kanban_app/lib/src/core/database/app_database.dart`.
+
+В базе есть таблицы для:
+
+- boards;
+- board columns;
+- tasks;
+- task types;
+- task history;
+- board card settings;
+- users;
+- workspaces;
+- workspace members;
+- board members;
+- task assignees;
+- task comments;
+- invitations.
+
+`app_database.g.dart` и `*.freezed.dart` генерируются автоматически. Не
+редактируй их вручную.
+
+Команда генерации:
 
 ```bash
-dart run build_runner build
+cd apps/kanban_app && dart run build_runner build
 ```
 
-## Auth Contract
+## Sync
 
-Expected auth endpoints:
+Текущее состояние sync:
 
-```http
-POST /auth/register
-POST /auth/login
-POST /auth/refresh
-POST /auth/logout
-```
+- repositories пишут в локальную Drift БД;
+- часть repositories в `RemoteMode.server` сразу пробует optimistic push;
+- `SyncManager` дергает `/sync/delta`;
+- `ServerStatePuller` подтягивает готовые server endpoints: workspaces,
+  workspace members, boards, board members, task types, tasks, comments,
+  assignees и history;
+- outbox contracts существуют, но persistent outbox worker еще не завершен;
+- realtime abstraction есть, но продуктовое применение событий к Drift еще
+  не завершено.
 
-Default development config still points to placeholder URLs in
-`lib/src/core/config/app_config.dart`.
+Что не считать готовым:
 
-## Main Screens
+- полноценный retry worker;
+- полное разрешение конфликтов;
+- обработка всех удалений/tombstones;
+- pull для всех сущностей;
+- production realtime merge.
 
-- `/login`
-- `/boards`
-- `/boards/:boardId/tasks`
+## Что Еще Не Завершено
 
-The tasks screen is the most advanced UI surface. It currently combines:
+После структурного разделения осталось:
 
-- board shell layout
-- search
-- task creation
-- task reorder and completion
-- column-based presentation
-- constructor mode for editing columns
+- добавить серверный list endpoint для columns и подключить его к pull;
+- дотянуть invitations и users beyond search, когда server endpoints готовы;
+- реализовать persistent sync outbox;
+- обработать tombstones и конфликты;
+- сделать серверный WebSocket broadcast;
+- подключить “Что изменилось, пока вас не было” к реальным PostgreSQL данным;
+- расширить permission checks на сервере;
+- добавить PostgreSQL integration tests через Docker/test DB.
 
-## What Is Missing
+## Правила Сопровождения
 
-- real backend configuration for default local runs
-- end-to-end remote datasources for boards, tasks, and columns
-- sync outbox / retry worker
-- realtime event merge into Drift
-- conflict resolution strategy
-- full board editing and deletion UX
-- fuller task details UX
-- broader automated tests
-
-## Commands
-
-Install dependencies:
-
-```bash
-flutter pub get
-```
-
-Generate code:
-
-```bash
-dart run build_runner build
-```
-
-Analyze:
-
-```bash
-flutter analyze
-```
-
-Test:
-
-```bash
-flutter test
-```
-
-Build web:
-
-```bash
-flutter build web
-```
-
-Run web:
-
-```bash
-flutter run -d chrome
-```
-
-## Working Notes
-
-- Prefer documenting the real state of the project over the intended state
-- Do not describe sync as finished
-- Do not describe boards/tasks/columns as API-backed unless providers were
-  switched away from local remotes
-- If you change architecture, update `README.md`, `ANALYSIS.md`, and this file
+- Не удаляй пользовательские изменения и не делай destructive git-команды.
+- Не редактируй generated-файлы вручную.
+- Для новых app/server JSON-моделей сначала меняй `kanban_contracts`.
+- Для Flutter UI сохраняй offline-first слой: UI работает через repositories,
+  а repositories уже решают local/server/sync.
+- После архитектурных изменений запускай `make analyze` и `make test`.
+- Если добавляешь новый исходный файл, начни его с короткого комментария:
+  что это за файл и какую роль он играет.

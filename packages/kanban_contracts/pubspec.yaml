@@ -1,0 +1,12 @@
+# Общий Dart-пакет с контрактами между Flutter-приложением и сервером.
+name: kanban_contracts
+description: Shared wire contracts for the Kanban app and Dart server.
+version: 0.1.0
+publish_to: 'none'
+
+environment:
+  sdk: ^3.11.3
+
+dev_dependencies:
+  test: ^1.26.3
+  very_good_analysis: ^10.2.0
